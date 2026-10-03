@@ -24,6 +24,7 @@ class CaseFacts:
     supplier_confirmed_short: bool = False
     conflicting_claims: bool = False        # two sources disagree -> never guess
     today: date = field(default_factory=date.today)
+    flags: list = field(default_factory=list)  # data the rules can't judge safely -> human (returns, units, tax)
 
 
 @dataclass
@@ -32,22 +33,31 @@ class Result:
     gap_qty: int
     hold_value: float                       # recommendation only
     reasons: list
+    flags: list = field(default_factory=list)
 
 
 def classify(f: CaseFacts) -> Result:
-    r = []
-    numbers = [i["number"] for i in f.invoices]
-    if len(numbers) != len(set(numbers)):
-        dup = [n for n in set(numbers) if numbers.count(n) > 1][0]
-        inv = next(i for i in f.invoices if i["number"] == dup)
+    res = _classify(f)
+    res.flags = list(f.flags) + res.flags
+    return res
+
+
+def _classify(f: CaseFacts) -> Result:
+    keys = [(str(i.get("supplier", "")).lower(), str(i["number"]).strip().upper()) for i in f.invoices]
+    if len(keys) != len(set(keys)):          # same supplier + same number = duplicate; different supplier = not
+        dup = [k for k in set(keys) if keys.count(k) > 1][0]
+        inv = f.invoices[keys.index(dup)]
         return Result("DUPLICATE_INVOICE", 0, round(inv["qty"] * inv["price"], 2),
-                      [f"invoice {dup} seen {numbers.count(dup)} times"])
+                      [f"invoice {dup[1]} seen {keys.count(dup)} times"])
 
     inv = f.invoices[0] if f.invoices else {"qty": f.ordered_qty, "price": f.po_price}
     if abs(inv["price"] - f.po_price) > f.po_price * f.price_tolerance_pct / 100:
         hold = round((inv["price"] - f.po_price) * inv["qty"], 2)
+        extra = []
+        if f.ordered_qty - f.received_qty > f.ordered_qty * f.tolerance_pct / 100:
+            extra.append(f"multi-issue: also short by {f.ordered_qty - f.received_qty} units")
         return Result("PRICE_MISMATCH", 0, max(hold, 0.0),
-                      [f"invoice price {inv['price']} vs PO price {f.po_price}"])
+                      [f"invoice price {inv['price']} vs PO price {f.po_price}"], extra)
 
     tol = f.ordered_qty * f.tolerance_pct / 100
     if f.received_qty - f.ordered_qty > tol:

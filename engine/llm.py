@@ -8,6 +8,7 @@ import json
 import os
 import re
 import time
+import urllib.error
 import urllib.request
 
 PROVIDER = os.getenv("LLM_PROVIDER", "anthropic")
@@ -63,12 +64,22 @@ def _chat(system, user, model=None, as_json=True):
     else:
         body = {"model": model, "temperature": 0,
                 "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}]}
-        if as_json:
+        if as_json and os.getenv("LLM_JSON_MODE", "on") == "on":
             body["response_format"] = {"type": "json_object"}
-        req = urllib.request.Request(f"{BASE}/chat/completions", json.dumps(body).encode(),
-                                     {"Authorization": f"Bearer {KEY}", "Content-Type": "application/json"})
-        with urllib.request.urlopen(req, timeout=60) as r:
-            text = json.loads(r.read())["choices"][0]["message"]["content"]
+
+        def post(b):
+            req = urllib.request.Request(f"{BASE.rstrip('/')}/chat/completions", json.dumps(b).encode(),
+                                         {"Authorization": f"Bearer {KEY}", "Content-Type": "application/json"})
+            with urllib.request.urlopen(req, timeout=60) as r:
+                return json.loads(r.read())["choices"][0]["message"]["content"]
+        try:
+            text = post(body)
+        except urllib.error.HTTPError as e:
+            if e.code == 400 and "response_format" in body:   # some providers (e.g. Gemini compat) reject JSON mode
+                body.pop("response_format")
+                text = post(body)
+            else:
+                raise
     USAGE["calls"] += 1
     USAGE["seconds"] += time.time() - t0
     if not as_json:

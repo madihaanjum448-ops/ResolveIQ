@@ -43,7 +43,8 @@ def _norm(s: str) -> str:
 
 def gate(case_class, action, *, mode="suggestion", hold_value=0.0, hold_limit=50000,
          msme_flag=False, injection_flag=False, qty_provenance="NATIVE",
-         draft=None, allowed_numbers=None, action_key=None, done_keys=(), attempt=0, max_attempts=3):
+         draft=None, allowed_numbers=None, action_key=None, done_keys=(), attempt=0, max_attempts=3,
+         human_flags=()):
     """Returns (decision, reasons). decision in ALLOWED | NEEDS_HUMAN | BLOCKED. Order matters."""
     reasons = []
     if action not in ALLOWED_ACTIONS.get(case_class, set()):
@@ -60,6 +61,7 @@ def gate(case_class, action, *, mode="suggestion", hold_value=0.0, hold_limit=50
             return "BLOCKED", ["draft lint failed: " + "; ".join(problems)]
     if injection_flag:
         reasons.append("injection flag on source email")
+    reasons.extend(human_flags)
     if hold_value > hold_limit:
         reasons.append(f"hold {hold_value} above limit {hold_limit}")
     if msme_flag:
@@ -95,7 +97,13 @@ def draft_for(action, ctx: dict):
 
 
 SUBJECT_TOKEN = re.compile(r"\[(CASE-\d+)\]", re.I)
-PO_RE = re.compile(r"\bPO[-\s#:]*(\d{3,})\b", re.I)
+PO_RE = re.compile(r"(?:\bPO|पीओ|पी\.ओ\.?)[-\s#:.]*(\d{3,})", re.I)
+
+
+def ascii_digits(text: str) -> str:
+    """Any script's digits (१००१, ௧௦௦௧, ૧૦૦૧) -> 1001, so rules work on Indic-language emails too."""
+    import unicodedata
+    return "".join(str(unicodedata.digit(c)) if c.isdigit() and not c.isascii() else c for c in text or "")
 
 
 def link_email(subject: str, body: str, open_cases: dict):
@@ -103,7 +111,7 @@ def link_email(subject: str, body: str, open_cases: dict):
     m = SUBJECT_TOKEN.search(subject or "")
     if m and m.group(1).upper() in open_cases:
         return m.group(1).upper(), "subject_token"
-    for text in (subject or "", body or ""):
+    for text in (ascii_digits(subject), ascii_digits(body)):
         for po in PO_RE.findall(text):
             hits = [c for c, p in open_cases.items() if p.endswith(po)]
             if len(hits) == 1:

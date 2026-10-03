@@ -1,0 +1,155 @@
+{
+  "name": "WF4 Send approved email",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "send-supplier-email",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "524bcf8e-502a-4a8b-8da6-a416e599169f",
+      "name": "Approved (from dashboard)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "aeec6099-44b9-4dc5-98b5-1f2d5043eb34"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "1ed5ee2d-35e6-4570-94cd-b0bc61e732ff",
+              "leftValue": "={{ $json.body.send }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "f60aebc4-734e-4d94-9896-679e5f4eb904",
+      "name": "Supplier-facing?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        240,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.body.to }}",
+        "subject": "={{ $json.body.subject }}",
+        "emailType": "text",
+        "message": "={{ $json.body.body }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "e7f0b684-7b71-4afa-964b-d568bfef7178",
+      "name": "Gmail: send to supplier",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        480,
+        -100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:5678/webhook/verify-case",
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ case_id: $('Approved (from dashboard)').item.json.body.case_id }) }}"
+      },
+      "id": "1b7afece-83d3-4e24-96a7-446a48beac78",
+      "name": "Start wait-verify (WF5)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        720,
+        -100
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "e1fe80be-3d59-4232-ac2a-19cb27b7e74b",
+      "name": "Internal action only",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        480,
+        120
+      ]
+    }
+  ],
+  "connections": {
+    "Approved (from dashboard)": {
+      "main": [
+        [
+          {
+            "node": "Supplier-facing?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supplier-facing?": {
+      "main": [
+        [
+          {
+            "node": "Gmail: send to supplier",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Internal action only",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail: send to supplier": {
+      "main": [
+        [
+          {
+            "node": "Start wait-verify (WF5)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "note": "Add your Gmail credential to the Gmail node. Activate this workflow so the production URL works."
+  }
+}

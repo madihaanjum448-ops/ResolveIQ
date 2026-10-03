@@ -11,6 +11,7 @@ from pathlib import Path
 
 from engine.classify import CaseFacts, classify, DEFAULT_ACTION, ALLOWED_ACTIONS, SUPPLIER_FACING
 from engine import llm
+from engine.facts import build_facts
 from engine.policy import gate, draft_for, link_email, looks_injected
 from engine.router import PROFILES, pick, evidence, validate_invoice
 from engine.verify import verify
@@ -90,8 +91,21 @@ def _native_erp():
 
 
 def _csv(name):
-    with open(DATA / "customer_y" / name, newline="") as fh:
-        return list(csv.DictReader(fh))
+    """Company Y files go through the messy-data normaliser (CSV or .xlsx, whichever exists)."""
+    from engine.normalise import load_table
+    base = DATA / "customer_y" / name
+    path = base.with_suffix(".xlsx") if base.with_suffix(".xlsx").exists() else base
+    kind = {"po.csv": "po", "grn.csv": "grn", "invoices.csv": "invoice"}[name]
+    rows, report = load_table(path, kind)
+    _LAST_REPORTS[name] = report
+    return rows
+
+
+_LAST_REPORTS = {}
+
+
+def load_reports():
+    return _LAST_REPORTS
 
 
 def read_pdf_invoice(path: Path) -> dict:
@@ -142,7 +156,6 @@ def load(con, customer, kind):
         else:
             src = {"po": "po.csv", "grn": "grn.csv", "invoice": "invoices.csv"}[kind]
             for row in _csv(src):
-                row = {k: (float(v) if k in ("price", "total") else int(v) if k == "qty" else v) for k, v in row.items()}
                 out.append(evidence(kind, row, source=src, method="csv"))
         return out
     return []  # MANUAL: caller creates a human task
@@ -226,15 +239,9 @@ def investigate(cid, proposed_action=None):
     pos, grns, invs = _snapshot(con, case["customer"], case["po_number"])
     p = pos[0]["data"]
     claims = _claims(con, cid)
-    transit = [c for c in claims if c.get("transit_qty")]
-    qtys = {int(c["transit_qty"]) for c in transit}
-    last = transit[-1] if transit else {}
-    facts = CaseFacts(p["po_number"], int(p["qty"]), float(p["price"]), sum(int(g["data"]["qty"]) for g in grns),
-                      [i["data"] for i in invs if i["method"] != "failed" and not validate_invoice(i["data"])],
-                      transit_qty=int(last.get("transit_qty") or 0),
-                      transit_eta=date.fromisoformat(last["eta"]) if last.get("eta") else None,
-                      supplier_confirmed_short=any(c.get("intent") == "CONFIRMS_SHORTAGE" for c in claims),
-                      conflicting_claims=len(qtys) > 1, today=today())
+    facts = build_facts(p, [g["data"] for g in grns],
+                        [i["data"] for i in invs if i["method"] != "failed" and not validate_invoice(i["data"])],
+                        claims, today())
     res = classify(facts)                                   # code decides the class, always
     allowed = sorted(ALLOWED_ACTIONS[res.case_class])
     # FR8: LLM diagnosis only for email-dependent or UNKNOWN cases; it can only pick from the allowed set
@@ -280,7 +287,7 @@ def investigate(cid, proposed_action=None):
                              draft=draft, allowed_numbers=allowed_nums,
                              action_key=f"{cid}:{action}:{case['attempts']}",
                              done_keys={r["key"] for r in con.execute("select key from action_keys")},
-                             attempt=case["attempts"], max_attempts=MAX_LOOPS)
+                             attempt=case["attempts"], max_attempts=MAX_LOOPS, human_flags=res.flags)
     status = {"LOG": "CLOSED", "WAIT": "WAITING", "BLOCK_DUPLICATE": "AWAITING_APPROVAL",
               "ESCALATE": "ESCALATED"}.get(action, "AWAITING_APPROVAL")
     if decision == "BLOCKED":
