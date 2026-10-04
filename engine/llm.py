@@ -66,7 +66,7 @@ def _chat(system, user, model=None, as_json=True):
         if as_json:
             body["response_format"] = {"type": "json_object"}
         req = urllib.request.Request(f"{BASE}/chat/completions", json.dumps(body).encode(),
-                                     {"Authorization": f"Bearer {KEY}", "Content-Type": "application/json"})
+                                     {"Authorization": f"Bearer {KEY}", "Content-Type": "application/json", "User-Agent": "resolveiq/1.0"})
         with urllib.request.urlopen(req, timeout=60) as r:
             text = json.loads(r.read())["choices"][0]["message"]["content"]
     USAGE["calls"] += 1

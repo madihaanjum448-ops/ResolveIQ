@@ -390,6 +390,19 @@ def simulate_grn(customer, po_number, qty):
 
 def reset():
     if os.path.exists(DB_PATH):
-        os.remove(DB_PATH)
+        import gc
+        gc.collect()  # free any sqlite connection that is only waiting for garbage collection
+        try:
+            os.remove(DB_PATH)
+        except PermissionError:
+            # Windows cannot delete a file another connection still holds open: empty the database instead
+            con = sqlite3.connect(DB_PATH)
+            try:
+                names = [r[0] for r in con.execute("select name from sqlite_master where type='table' and name not like 'sqlite_%'")]
+                for name in names:
+                    con.execute('drop table if exists "%s"' % name)
+                con.commit()
+            finally:
+                con.close()
     from data.make_demo_data import build
     build()
