@@ -6,3 +6,6 @@ reportlab>=4
 streamlit>=1.38
 requests
 openpyxl>=3.1
+psycopg2-binary>=2.9.9
+python-multipart>=0.0.9
+httpx>=0.27.0

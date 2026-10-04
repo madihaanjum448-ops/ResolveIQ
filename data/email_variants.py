@@ -14,7 +14,7 @@ DEV = str.maketrans("0123456789", "०१२३४५६७८९")
 
 def eta_phrase(days, lang, rng):
     d = TODAY + timedelta(days=days)
-    en = [d.strftime("%d/%m/%Y"), d.strftime("%-d %b"), f"{DAYS[d.weekday()]}", f"by {DAYS[d.weekday()]}",
+    en = [d.strftime("%d/%m/%Y"), f"{d.day} {d.strftime('%b')}", f"{DAYS[d.weekday()]}", f"by {DAYS[d.weekday()]}",
           d.isoformat(), f"in {days} days" if days > 1 else "tomorrow"]
     hing = [f"{DAYS[d.weekday()]} tak", f"{days} din mein" if days > 1 else "kal tak",
             "parso tak" if days == 2 else f"{DAYS[d.weekday()]} ko", d.strftime("%d/%m")]
