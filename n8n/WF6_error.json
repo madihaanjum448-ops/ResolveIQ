@@ -1,0 +1,56 @@
+{
+  "name": "WF6 Error Handler",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "3aa474f7-04ba-42ca-bc28-d91f213eb4aa",
+      "name": "On any workflow error",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "your-email@gmail.com",
+        "subject": "=ResolveIQ: {{ $json.workflow.name }} failed",
+        "emailType": "text",
+        "message": "=Workflow: {{ $json.workflow.name }}\nNode: {{ $json.execution.lastNodeExecuted }}\nError: {{ $json.execution.error.message }}\nExecution: {{ $json.execution.url }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "161d93e2-82a1-4fbb-bee8-1ae0b9a645bf",
+      "name": "Gmail: alert owner",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        260,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "On any workflow error": {
+      "main": [
+        [
+          {
+            "node": "Gmail: alert owner",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "note": "Set this as the Error Workflow in the settings of WF1, WF2, WF4 and WF5. Put your email in the Gmail node."
+  }
+}

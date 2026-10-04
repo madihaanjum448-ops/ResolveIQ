@@ -1,0 +1,200 @@
+{
+  "name": "WF0 Capability Router (monitor)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 1
+            }
+          ]
+        }
+      },
+      "id": "35dbe0b8-ff73-4b81-bfbc-df7ef5276f74",
+      "name": "Every minute",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "router-check",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "d797e6c3-4e11-4073-b0a4-80059966eb07",
+      "name": "Check now (webhook)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        180
+      ],
+      "webhookId": "f1ebbb6e-282f-4893-8559-c4a2abad4b7c"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "http://localhost:8000/admin/paths",
+        "options": {}
+      },
+      "id": "00f1c0d7-d3c9-4c56-938e-39d8c556f644",
+      "name": "Read router path log",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        260,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b0ef4a75-e1cd-483a-9ca0-1ce28e19dc64",
+              "leftValue": "={{ String($json.note || '') + ' ' + String($json.path || '') }}",
+              "rightValue": "(native error|health set to False|MANUAL)",
+              "operator": {
+                "type": "string",
+                "operation": "regex"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "c9d79b71-e678-4c4c-a258-4658ff4ce853",
+      "name": "Native source failed or switched?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        520,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "compare": "selectedFields",
+        "fieldsToCompare": "customer,capability",
+        "options": {}
+      },
+      "id": "ed8ea35b-c9d0-44f3-a348-0761fa901b55",
+      "name": "Keep one alert per capability",
+      "type": "n8n-nodes-base.removeDuplicates",
+      "typeVersion": 1.1,
+      "position": [
+        780,
+        0
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "dcef0256-8786-493e-a879-a2d34ab58f86",
+      "name": "Alert owner: router switched to FALLBACK (add Gmail later)",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1040,
+        0
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "80220277-ab42-4aea-be8f-6ec6fee46c04",
+      "name": "All capabilities healthy",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        780,
+        200
+      ]
+    }
+  ],
+  "connections": {
+    "Every minute": {
+      "main": [
+        [
+          {
+            "node": "Read router path log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check now (webhook)": {
+      "main": [
+        [
+          {
+            "node": "Read router path log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read router path log": {
+      "main": [
+        [
+          {
+            "node": "Native source failed or switched?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Native source failed or switched?": {
+      "main": [
+        [
+          {
+            "node": "Keep one alert per capability",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "All capabilities healthy",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Keep one alert per capability": {
+      "main": [
+        [
+          {
+            "node": "Alert owner: router switched to FALLBACK (add Gmail later)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "note": "The routing decision itself runs in tested Python (engine/router.py) on every read. WF0 watches the router and alerts when a customer's native source fails and the router falls back. Demo: Break native in the dashboard, then curl the router-check webhook."
+  }
+}

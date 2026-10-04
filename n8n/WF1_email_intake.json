@@ -1,0 +1,431 @@
+{
+  "name": "WF1 Email Intake",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "email-in",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "120c6933-d2f7-4db0-8100-c4f586527bf5",
+      "name": "Email in (webhook)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "758b61a0-58bb-4bc7-b3b7-a7a19f489f6e"
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {},
+        "options": {}
+      },
+      "id": "f75c50b5-acbd-4df0-b8b9-34d781904142",
+      "name": "Gmail Trigger (enable later)",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        220
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d9308c26-54ee-47f1-a758-c19416ef7991",
+              "name": "body.message_id",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "0fd92f89-0e1b-49df-ba31-c16821c5c9b3",
+              "name": "body.subject",
+              "value": "={{ $json.subject }}",
+              "type": "string"
+            },
+            {
+              "id": "6c8f1c3c-fc52-4544-a02a-ecb6bde6625e",
+              "name": "body.body",
+              "value": "={{ $json.text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "948ea8e8-b589-453b-9e68-fee4ff8e300a",
+      "name": "Map Gmail to email shape",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        240,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:8000/emails",
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ message_id: $json.body.message_id || ('wh-' + $execution.id), subject: $json.body.subject || '', body: $json.body.body || '', extraction: null }) }}"
+      },
+      "id": "234198c4-7b55-428a-9b67-a1cb707e9fad",
+      "name": "Store email (API links + Claude extracts)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        480,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ccbe2bb1-128c-4e30-ac15-a672dac0846d",
+              "leftValue": "={{ $json.case_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "1084a97d-00a8-40b7-b1bc-58b7bf9cb533",
+      "name": "Linked to a case?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        720,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://localhost:8000/cases/{{ $json.case_id }}/investigate",
+        "options": {}
+      },
+      "id": "da16aca3-56ce-42f8-bc37-6bbe2856fa91",
+      "name": "Investigate case",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        960,
+        -100
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "480c6535-2fc4-480f-b6a1-ad98d926a4f5",
+      "name": "Not linked: triage queue (notify buyer later)",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        960,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "ea6ffa4f-6c00-4027-9a43-7660190ad3ec",
+                    "leftValue": "={{ $json.status }}",
+                    "rightValue": "AWAITING_APPROVAL",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "AWAITING_APPROVAL"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "9a632459-3680-4b59-84d6-4fb64b3f3ce8",
+                    "leftValue": "={{ $json.status }}",
+                    "rightValue": "WAITING",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "WAITING"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "b2d6745c-9d77-418a-9d21-d9b281b0893f",
+                    "leftValue": "={{ $json.status }}",
+                    "rightValue": "ESCALATED",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "ESCALATED"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "8e3c3400-2738-4163-ac9f-c93b4216f9ac",
+                    "leftValue": "={{ $json.status }}",
+                    "rightValue": "CLOSED",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "CLOSED"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "48ba6975-c2ab-4a6e-ab52-774bb73c2311",
+      "name": "Route by status",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        1200,
+        -100
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "09b8ad1d-22c6-4ed0-b83c-64a1dcf7c922",
+      "name": "Needs approval (dashboard)",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1460,
+        -260
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "853d37d0-c8c0-4300-992c-4e248c715b57",
+      "name": "Waiting (WF5 re-checks)",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1460,
+        -120
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "b861db4a-169c-48ad-a02c-ae583ec4710a",
+      "name": "Escalated: notify buyer (add Gmail later)",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1460,
+        20
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "795c0ca6-a5c4-45d6-a348-efa368e92dda",
+      "name": "Closed",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1460,
+        160
+      ]
+    }
+  ],
+  "connections": {
+    "Email in (webhook)": {
+      "main": [
+        [
+          {
+            "node": "Store email (API links + Claude extracts)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail Trigger (enable later)": {
+      "main": [
+        [
+          {
+            "node": "Map Gmail to email shape",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Map Gmail to email shape": {
+      "main": [
+        [
+          {
+            "node": "Store email (API links + Claude extracts)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store email (API links + Claude extracts)": {
+      "main": [
+        [
+          {
+            "node": "Linked to a case?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Linked to a case?": {
+      "main": [
+        [
+          {
+            "node": "Investigate case",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Not linked: triage queue (notify buyer later)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Investigate case": {
+      "main": [
+        [
+          {
+            "node": "Route by status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by status": {
+      "main": [
+        [
+          {
+            "node": "Needs approval (dashboard)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Waiting (WF5 re-checks)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Escalated: notify buyer (add Gmail later)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Closed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "note": "Duplicate message_id returns {duplicate:true} and stops at 'Not linked'. To use Gmail: enable the Gmail Trigger, add your Gmail credential, and disable the webhook."
+  }
+}

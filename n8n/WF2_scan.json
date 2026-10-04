@@ -1,0 +1,362 @@
+{
+  "name": "WF2 ERP Sync (scan)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "02c732a5-c97e-4c77-a2dd-ac40f6ac883d",
+      "name": "Run manually",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 5
+            }
+          ]
+        }
+      },
+      "id": "4901d33d-6510-455e-8ad2-925c15fbce3f",
+      "name": "Every 5 minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "scan",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "00632723-b448-43ed-bc8d-2b87ade70f22",
+      "name": "Scan webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        360
+      ],
+      "webhookId": "56bafafa-da22-4c03-a3cd-67088fb201d2"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://localhost:8000/scan/{{ $json.body?.customer || 'X' }}",
+        "options": {}
+      },
+      "id": "2fed689e-805f-484a-85e6-e3986d5f3f22",
+      "name": "Scan ERP / files",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        260,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "opened",
+        "options": {}
+      },
+      "id": "e57410c7-7864-493e-9ec3-b79644d196df",
+      "name": "One item per new case",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        500,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://localhost:8000/cases/{{ $json.opened }}/investigate",
+        "options": {}
+      },
+      "id": "ecbd95ce-dc88-47d3-bde6-5763bbfa7188",
+      "name": "Investigate case",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        740,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "d97a3dc2-8d61-4732-b383-150b9d689bc8",
+                    "leftValue": "={{ $json.status }}",
+                    "rightValue": "AWAITING_APPROVAL",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "AWAITING_APPROVAL"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "c3b4a172-2073-40e7-8c3b-f5ca43571921",
+                    "leftValue": "={{ $json.status }}",
+                    "rightValue": "WAITING",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "WAITING"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "5ba25a27-6e75-4ad9-9e4b-e5bbf9243682",
+                    "leftValue": "={{ $json.status }}",
+                    "rightValue": "ESCALATED",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "ESCALATED"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "3ecb6479-25ac-4968-82b4-44d6842637ae",
+                    "leftValue": "={{ $json.status }}",
+                    "rightValue": "CLOSED",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "CLOSED"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a3afb2f3-957e-4b59-adff-bf33e9f52a37",
+      "name": "Route by status",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        980,
+        180
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "0d5d166e-ef4d-4fd1-a6e3-eea5ed070f66",
+      "name": "Needs approval (dashboard)",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1240,
+        0
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "007f55b8-e8c2-4f2c-907b-40d03e81bcaf",
+      "name": "Waiting (WF5 re-checks)",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1240,
+        140
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "969ee42f-1688-4d3e-917e-a1b96767a429",
+      "name": "Escalated: notify buyer (add Gmail later)",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1240,
+        280
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "9456e0dc-50c6-4be1-ae7a-4b37c975b390",
+      "name": "Closed",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1240,
+        420
+      ]
+    }
+  ],
+  "connections": {
+    "Run manually": {
+      "main": [
+        [
+          {
+            "node": "Scan ERP / files",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Every 5 minutes": {
+      "main": [
+        [
+          {
+            "node": "Scan ERP / files",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scan webhook": {
+      "main": [
+        [
+          {
+            "node": "Scan ERP / files",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scan ERP / files": {
+      "main": [
+        [
+          {
+            "node": "One item per new case",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "One item per new case": {
+      "main": [
+        [
+          {
+            "node": "Investigate case",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Investigate case": {
+      "main": [
+        [
+          {
+            "node": "Route by status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by status": {
+      "main": [
+        [
+          {
+            "node": "Needs approval (dashboard)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Waiting (WF5 re-checks)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Escalated: notify buyer (add Gmail later)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Closed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "note": "If 'One item per new case' gets an empty list, cases already exist: click Reset demo in the dashboard."
+  }
+}

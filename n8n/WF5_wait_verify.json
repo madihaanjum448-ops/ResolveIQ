@@ -1,0 +1,232 @@
+{
+  "name": "WF5 Wait and Verify",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "verify-case",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "6f19e263-988e-4d4f-a438-70065d9cc400",
+      "name": "Verify case (webhook)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "4c121ee9-15f4-48ce-a7b5-94b47f48bbb0"
+    },
+    {
+      "parameters": {
+        "resume": "timeInterval",
+        "amount": 1,
+        "unit": "minutes"
+      },
+      "id": "3bd7e85f-808a-46d8-8795-f83eec3d0c2f",
+      "name": "Wait (demo: 1 min)",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        240,
+        0
+      ],
+      "webhookId": "5d319c50-cd17-4427-b6aa-ca3f8ebe8790"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://localhost:8000/cases/{{ $('Verify case (webhook)').item.json.body.case_id }}/verify",
+        "options": {}
+      },
+      "id": "83fc549b-9bdf-430a-97d1-9be30e54a350",
+      "name": "Re-read system and verify",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        480,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "a5d92cde-086c-4b89-922d-7d57ae6b45cf",
+                    "leftValue": "={{ $json.status }}",
+                    "rightValue": "CLOSED",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "CLOSED"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "0d54666a-1178-42cd-86fd-47dd06e9d509",
+                    "leftValue": "={{ $json.status }}",
+                    "rightValue": "WAITING",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "WAITING"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "a09885aa-639f-481e-97e1-ac79327f45a5",
+                    "leftValue": "={{ $json.status }}",
+                    "rightValue": "ESCALATED",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "ESCALATED"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "1908ecc1-cdfb-48ef-b7ee-84cb255beb15",
+      "name": "Route by status",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        720,
+        0
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "8877da9d-1bdc-4d6e-8500-5aeb3b369d81",
+      "name": "Closed: verified fixed",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        980,
+        -140
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "b6ae3d48-8912-4493-9757-db9b4eb3642d",
+      "name": "Escalated: notify manager (add Gmail later)",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        980,
+        140
+      ]
+    }
+  ],
+  "connections": {
+    "Verify case (webhook)": {
+      "main": [
+        [
+          {
+            "node": "Wait (demo: 1 min)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait (demo: 1 min)": {
+      "main": [
+        [
+          {
+            "node": "Re-read system and verify",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Re-read system and verify": {
+      "main": [
+        [
+          {
+            "node": "Route by status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by status": {
+      "main": [
+        [
+          {
+            "node": "Closed: verified fixed",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait (demo: 1 min)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Escalated: notify manager (add Gmail later)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "note": "WAITING loops back to Wait. The API escalates after 3 attempts, so the loop is bounded."
+  }
+}

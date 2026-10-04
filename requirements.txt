@@ -5,3 +5,4 @@ pypdf>=4
 reportlab>=4
 streamlit>=1.38
 requests
+openpyxl>=3.1
