@@ -8,7 +8,7 @@ import time
 import urllib.error
 import urllib.request
 
-API, N8N = "http://localhost:8000", "http://localhost:5678"
+API, N8N = "http://127.0.0.1:8000", "http://127.0.0.1:5678"
 results = []
 
 

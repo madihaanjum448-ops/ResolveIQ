@@ -3,7 +3,7 @@
   "nodes": [
     {
       "parameters": {},
-      "id": "5a223815-6071-4e72-beed-5371ed065bfc",
+      "id": "900a624e-e5aa-4bd0-a1df-96afa91c325d",
       "name": "Run manually",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
@@ -17,51 +17,49 @@
         "rule": {
           "interval": [
             {
-              "field": "minutes",
-              "minutesInterval": 5
+              "field": "minutes"
             }
           ]
         }
       },
-      "id": "25b29831-b2e7-4abd-b7b1-7cd5b425d763",
+      "id": "35dc81c2-021b-4a16-b484-c64c87f8f5f5",
       "name": "Every 5 minutes",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
       "position": [
         0,
-        180
+        192
       ]
     },
     {
       "parameters": {
         "httpMethod": "POST",
         "path": "scan",
-        "responseMode": "onReceived",
         "options": {}
       },
-      "id": "70e714c6-b3de-4f35-83c7-b369b75e3048",
+      "id": "811290b3-2e24-4c57-a70b-ee123604652f",
       "name": "Scan webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
         0,
-        360
+        368
       ],
       "webhookId": "7e3b5e7e-b5c6-4cc4-973f-e4c01ff945dc"
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "=http://localhost:8000/scan/{{ $json.body?.customer || 'X' }}",
+        "url": "=http://127.0.0.1:8000/scan/{{ $json.body?.customer || 'X' }}",
         "options": {}
       },
-      "id": "8fac07a3-a66b-4221-a95d-db282451ea3a",
+      "id": "40242e40-56bf-4e1c-b941-6e83485d30c1",
       "name": "Scan ERP / files",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        260,
-        180
+        272,
+        192
       ]
     },
     {
@@ -69,13 +67,13 @@
         "fieldToSplitOut": "opened",
         "options": {}
       },
-      "id": "fa541b16-4852-4757-b1a2-3b08234195aa",
+      "id": "ebb7b9a6-1c70-4bac-9612-f53cc5257996",
       "name": "One item per new case",
       "type": "n8n-nodes-base.splitOut",
       "typeVersion": 1,
       "position": [
-        500,
-        180
+        512,
+        192
       ]
     },
     {
@@ -91,13 +89,13 @@
           }
         }
       },
-      "id": "65ddb026-1a70-4695-bc22-702b7963cf1a",
+      "id": "0b8de411-8eb5-480d-9ac9-6fdf176faa94",
       "name": "Investigate case",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        740,
-        180
+        752,
+        192
       ]
     },
     {
@@ -204,67 +202,68 @@
         },
         "options": {}
       },
-      "id": "06bc6832-8a4f-45ee-a53b-6191d20e8b82",
+      "id": "c93e0e5d-7d29-44e8-88c5-136078aa9667",
       "name": "Route by status",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.2,
       "position": [
-        980,
-        180
+        992,
+        192
       ]
     },
     {
       "parameters": {},
-      "id": "984f9108-96d6-47f1-905f-bc7720fbbad0",
+      "id": "d5e07da2-dbcc-4d19-a80a-9c1bd244105d",
       "name": "Needs approval (dashboard)",
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
       "position": [
-        1240,
+        1248,
         0
       ]
     },
     {
       "parameters": {},
-      "id": "08e3669f-6cc6-4f04-802d-1ea7e56c29b3",
+      "id": "fb49cd20-eeea-4c61-aed4-0a6028b543b0",
       "name": "Waiting (WF5 re-checks)",
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
       "position": [
-        1240,
-        140
+        1248,
+        144
       ]
     },
     {
       "parameters": {
         "method": "POST",
         "url": "http://localhost:8000/admin/audit",
-        "options": {},
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ type: 'escalation', case_id: $json.id, key: 'esc:' + $json.id, detail: { reasons: $json.reasons } }) }}"
+        "jsonBody": "={{ JSON.stringify({ type: 'escalation', case_id: $json.id, key: 'esc:' + $json.id, detail: { reasons: $json.reasons } }) }}",
+        "options": {}
       },
-      "id": "0bf2e33d-5795-4db4-8912-66fb2ff57ba0",
+      "id": "82084d3c-0b23-48dd-a62e-2c98eefa8dcf",
       "name": "Escalated: record for buyer",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1240,
-        280
+        1248,
+        288
       ]
     },
     {
       "parameters": {},
-      "id": "b391ccaa-56e6-4756-adf0-7ef0ff277bd3",
+      "id": "e1e58f51-5dc0-4afe-ab09-88913636d302",
       "name": "Closed",
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
       "position": [
-        1240,
-        420
+        1248,
+        432
       ]
     }
   ],
+  "pinData": {},
   "connections": {
     "Run manually": {
       "main": [
@@ -365,12 +364,20 @@
       ]
     }
   },
-  "active": false,
+  "active": true,
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "85N74VHnjGQzU5iX",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
   },
-  "pinData": {},
+  "versionId": "19b1e786-0801-4828-8f05-81ee5025f3a2",
   "meta": {
-    "note": "If 'One item per new case' gets an empty list, cases already exist: click Reset demo in the dashboard."
-  }
+    "instanceId": "82f7302851375ed3c7da794c410f91b22ebdc1f80d6bcdec5034c0c9e9079225"
+  },
+  "nodeGroups": [],
+  "id": "vMDFg5oTdxioV8LS",
+  "tags": []
 }

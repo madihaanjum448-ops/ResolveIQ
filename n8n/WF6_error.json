@@ -3,7 +3,7 @@
   "nodes": [
     {
       "parameters": {},
-      "id": "ab8ca50f-5e46-45b5-8d16-54b174cc55f9",
+      "id": "53bc5101-5d24-48f9-a903-b197dc67ca36",
       "name": "On any workflow error",
       "type": "n8n-nodes-base.errorTrigger",
       "typeVersion": 1,
@@ -16,17 +16,17 @@
       "parameters": {
         "method": "POST",
         "url": "http://localhost:8000/admin/audit",
-        "options": {},
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ type: 'workflow_error', detail: { workflow: $json.workflow.name, node: $json.execution.lastNodeExecuted, error: $json.execution.error.message, execution_url: $json.execution.url, execution_id: $json.execution.id } }) }}"
+        "jsonBody": "={{ JSON.stringify({ type: 'workflow_error', detail: { workflow: $json.workflow.name, node: $json.execution.lastNodeExecuted, error: $json.execution.error.message, execution_url: $json.execution.url, execution_id: $json.execution.id } }) }}",
+        "options": {}
       },
-      "id": "664808d2-61ec-4e1e-81a3-ee26bce45eed",
+      "id": "9a5b3568-b07d-4329-990c-6a5452572f7d",
       "name": "Record error (audit log)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        260,
+        272,
         0
       ]
     },
@@ -40,17 +40,19 @@
           "appendAttribution": false
         }
       },
-      "id": "ff43cc13-e233-46ce-b178-af3413ef3260",
+      "id": "b1597161-7cd0-41d5-9944-2fd737f01620",
       "name": "Gmail: alert owner (enable after credential)",
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.1,
       "position": [
-        520,
+        528,
         0
       ],
+      "webhookId": "69f59059-80f0-45bc-950d-76a5b0a41954",
       "disabled": true
     }
   ],
+  "pinData": {},
   "connections": {
     "On any workflow error": {
       "main": [
@@ -75,12 +77,16 @@
       ]
     }
   },
-  "active": false,
+  "active": true,
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "binaryMode": "separate"
   },
-  "pinData": {},
+  "versionId": "69cbf9a7-9ad3-439a-93e1-3b0bd233ab7a",
   "meta": {
-    "note": "Set this as the Error Workflow (Workflow settings) of WF0, WF1, WF2, WF4, WF5. Every failure is recorded at GET http://localhost:8000/admin/audit?type=workflow_error. Gmail is optional."
-  }
+    "instanceId": "82f7302851375ed3c7da794c410f91b22ebdc1f80d6bcdec5034c0c9e9079225"
+  },
+  "nodeGroups": [],
+  "id": "85N74VHnjGQzU5iX",
+  "tags": []
 }

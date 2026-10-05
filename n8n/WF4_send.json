@@ -5,7 +5,6 @@
       "parameters": {
         "httpMethod": "POST",
         "path": "send-supplier-email",
-        "responseMode": "onReceived",
         "options": {}
       },
       "id": "4c04239b-c1a7-446e-a92a-134f3fc82195",
@@ -74,17 +73,17 @@
       "typeVersion": 3.4,
       "position": [
         480,
-        -100
+        -96
       ]
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "http://localhost:8000/admin/audit",
-        "options": {},
+        "url": "http://127.0.0.1:8000/admin/audit",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ type: 'supplier_email', case_id: $('Approved (from dashboard)').item.json.body.case_id, detail: { to: $('Approved (from dashboard)').item.json.body.to, subject: $('Approved (from dashboard)').item.json.body.subject, body: $('Approved (from dashboard)').item.json.body.body, mode: $('Send mode (simulate | gmail)').item.json.mode } }) }}"
+        "jsonBody": "={{ JSON.stringify({ type: 'supplier_email', case_id: $('Approved (from dashboard)').item.json.body.case_id, detail: { to: $('Approved (from dashboard)').item.json.body.to, subject: $('Approved (from dashboard)').item.json.body.subject, body: $('Approved (from dashboard)').item.json.body.body, mode: $('Send mode (simulate | gmail)').item.json.mode } }) }}",
+        "options": {}
       },
       "id": "162babd3-00e2-492f-945f-6bf0874cdb75",
       "name": "Outbox: record once (idempotent)",
@@ -92,7 +91,7 @@
       "typeVersion": 4.2,
       "position": [
         720,
-        -100
+        -96
       ]
     },
     {
@@ -127,7 +126,7 @@
       "typeVersion": 2.2,
       "position": [
         960,
-        -100
+        -96
       ]
     },
     {
@@ -191,8 +190,9 @@
       "typeVersion": 2.1,
       "position": [
         1440,
-        -100
+        -96
       ],
+      "webhookId": "5f3c1caf-ffeb-4008-9217-95fb3673bcbb",
       "disabled": true
     },
     {
@@ -203,17 +203,17 @@
       "typeVersion": 1,
       "position": [
         1440,
-        100
+        112
       ]
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "http://localhost:5678/webhook/verify-case",
-        "options": {},
+        "url": "http://127.0.0.1:5678/webhook/verify-case",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ case_id: $('Approved (from dashboard)').item.json.body.case_id }) }}"
+        "jsonBody": "={{ JSON.stringify({ case_id: $('Approved (from dashboard)').item.json.body.case_id }) }}",
+        "options": {}
       },
       "id": "51ec3835-ac42-4aea-a6cb-0ed4ebe0ee72",
       "name": "Start wait-verify (WF5)",
@@ -232,10 +232,11 @@
       "typeVersion": 1,
       "position": [
         480,
-        140
+        144
       ]
     }
   ],
+  "pinData": {},
   "connections": {
     "Approved (from dashboard)": {
       "main": [
@@ -347,12 +348,17 @@
       ]
     }
   },
-  "active": false,
+  "active": true,
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "binaryMode": "separate"
   },
-  "pinData": {},
+  "versionId": "715c486d-4a83-4820-8cee-5f6d7bf74d40",
   "meta": {
-    "note": "Default mode is 'simulate': the email is recorded in the outbox (GET /admin/audit) but not mailed. For real mail: add a Gmail credential, enable the Gmail node, and set mode to 'gmail'. The outbox key makes replays/retries no-ops."
-  }
+    "note": "Default mode is 'simulate': the email is recorded in the outbox (GET /admin/audit) but not mailed. For real mail: add a Gmail credential, enable the Gmail node, and set mode to 'gmail'. The outbox key makes replays/retries no-ops.",
+    "instanceId": "82f7302851375ed3c7da794c410f91b22ebdc1f80d6bcdec5034c0c9e9079225"
+  },
+  "nodeGroups": [],
+  "id": "wf4SendSupplier1",
+  "tags": []
 }

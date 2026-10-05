@@ -5,48 +5,46 @@
       "parameters": {
         "httpMethod": "POST",
         "path": "verify-case",
-        "responseMode": "onReceived",
         "options": {}
       },
-      "id": "d597b67e-8725-4065-97e3-40913111b3a3",
+      "id": "1aeca00f-cbb8-451e-8ea8-97603d446403",
       "name": "Verify case (webhook)",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        0,
-        0
+        -976,
+        144
       ],
       "webhookId": "6da6ab68-f66d-4b16-b714-d15d5df6735d"
     },
     {
       "parameters": {
-        "resume": "timeInterval",
         "amount": 1,
         "unit": "minutes"
       },
-      "id": "ed3720f2-0f14-464d-b7d3-f0d7a242fb83",
+      "id": "46665e37-e3a2-42f7-8fa6-56393369775a",
       "name": "Wait (demo: 1 min)",
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
       "position": [
-        240,
-        0
+        -736,
+        144
       ],
       "webhookId": "9ff4cad9-b8e5-4174-9642-5e6d5df3e3dc"
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "=http://localhost:8000/cases/{{ $('Verify case (webhook)').item.json.body.case_id }}/verify",
+        "url": "=http://127.0.0.1:8000/cases/{{ $('Verify case (webhook)').item.json.body.case_id }}/verify",
         "options": {}
       },
-      "id": "af1e13db-6170-46ff-83cc-10e853cf68c1",
+      "id": "86153dad-870d-4ff1-8eb1-e58e0ed520b3",
       "name": "Re-read system and verify",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        480,
-        0
+        -496,
+        144
       ]
     },
     {
@@ -129,52 +127,53 @@
         },
         "options": {}
       },
-      "id": "cf0a9277-3f4d-4255-93d6-8c0f94a32e9e",
+      "id": "e9f8b73e-8764-419f-8f68-42523799fc1c",
       "name": "Route by status",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.2,
       "position": [
-        720,
+        -256,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:8000/admin/audit",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ type: 'case_closed_verified', case_id: $('Verify case (webhook)').item.json.body.case_id, key: 'closed:' + $('Verify case (webhook)').item.json.body.case_id, detail: { why: $json.why } }) }}",
+        "options": {}
+      },
+      "id": "771f91ab-9fa8-4df7-a733-9d8cb55ec655",
+      "name": "Audit: closed after verification",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        0,
         0
       ]
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "http://localhost:8000/admin/audit",
-        "options": {},
+        "url": "http://127.0.0.1:8000/admin/audit",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ type: 'case_closed_verified', case_id: $('Verify case (webhook)').item.json.body.case_id, key: 'closed:' + $('Verify case (webhook)').item.json.body.case_id, detail: { why: $json.why } }) }}"
+        "jsonBody": "={{ JSON.stringify({ type: 'escalation', case_id: $('Verify case (webhook)').item.json.body.case_id, key: 'esc:' + $('Verify case (webhook)').item.json.body.case_id, detail: { why: $json.why } }) }}",
+        "options": {}
       },
-      "id": "a5cedc5c-42fc-48ab-93ae-5d66282fc7c7",
-      "name": "Audit: closed after verification",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        980,
-        -140
-      ]
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "http://localhost:8000/admin/audit",
-        "options": {},
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ type: 'escalation', case_id: $('Verify case (webhook)').item.json.body.case_id, key: 'esc:' + $('Verify case (webhook)').item.json.body.case_id, detail: { why: $json.why } }) }}"
-      },
-      "id": "d5a30ba6-34c9-4a86-bd39-05ba0aab9293",
+      "id": "9d329dc6-ed3d-4ee6-886a-a5ccc660adc1",
       "name": "Audit: escalated to manager",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        980,
-        140
+        0,
+        288
       ]
     }
   ],
+  "pinData": {},
   "connections": {
     "Verify case (webhook)": {
       "main": [
@@ -235,12 +234,16 @@
       ]
     }
   },
-  "active": false,
+  "active": true,
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "binaryMode": "separate"
   },
-  "pinData": {},
+  "versionId": "4f18925d-d744-4dde-8016-3bb2da778577",
   "meta": {
-    "note": "WAITING loops back to Wait. The API escalates after 3 attempts, so the loop is bounded. Outcomes are written to /admin/audit."
-  }
+    "instanceId": "82f7302851375ed3c7da794c410f91b22ebdc1f80d6bcdec5034c0c9e9079225"
+  },
+  "nodeGroups": [],
+  "id": "EHp3xXjrcMuMdldY",
+  "tags": []
 }
