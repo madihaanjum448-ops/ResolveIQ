@@ -133,7 +133,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "http://localhost:8000/emails",
+        "url": "http://127.0.0.1:8000/emails",
         "options": {},
         "sendBody": true,
         "specifyBody": "json",
@@ -186,7 +186,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "=http://localhost:8000/cases/{{ $json.case_id }}/investigate",
+        "url": "=http://127.0.0.1:8000/cases/{{ $json.case_id }}/investigate",
         "options": {}
       },
       "id": "9088a82b-3b5b-4ebb-9d1f-e1d3738efc40",

@@ -16,6 +16,31 @@ import time
 import urllib.error
 import urllib.request
 
+def _load_dotenv():
+    """Load <repo>/.env into os.environ BEFORE the settings below are read. Real environment variables win; an
+    empty one is filled from .env. Without this, `uvicorn api.main:app` started from PowerShell/cmd never sees .env
+    (only run_local.sh and docker-compose load it) and the LLM silently stays unavailable. Never prints values.
+    Set RESOLVEIQ_NO_DOTENV=1 to skip (tests do this so a developer's real key can never leak into them)."""
+    if os.getenv("RESOLVEIQ_NO_DOTENV"):
+        return
+    path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env")
+    if not os.path.isfile(path):
+        return
+    try:
+        from dotenv import dotenv_values
+        import io
+        raw = open(path, "rb").read()
+        # Windows PowerShell `>` writes UTF-16 with a BOM; editors add a UTF-8 BOM. Handle both.
+        text = raw.decode("utf-16" if raw[:2] in (b"\xff\xfe", b"\xfe\xff") else "utf-8-sig")
+        for k, v in dotenv_values(stream=io.StringIO(text)).items():
+            if k and v is not None and not os.environ.get(k):
+                os.environ[k] = v
+    except Exception as exc:   # missing python-dotenv or an unreadable file must not break imports
+        print(f"[llm] .env not loaded: {type(exc).__name__}", file=sys.stderr)
+
+
+_load_dotenv()
+
 PROVIDER = os.getenv("LLM_PROVIDER", "anthropic")
 BASE = os.getenv("LLM_BASE_URL", "https://api.anthropic.com/v1" if PROVIDER == "anthropic" else "https://api.groq.com/openai/v1")
 KEY = os.getenv("LLM_API_KEY", "")

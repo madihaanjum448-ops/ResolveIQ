@@ -1,12 +1,12 @@
 """Generates importable n8n workflow JSON files (n8n 2.x node types).
    python n8n/make_workflows.py   -> writes n8n/WF*.json
-All HTTP calls go to the ResolveIQ API at http://localhost:8000 (n8n started with `npx n8n`)."""
+All HTTP calls go to the ResolveIQ API at http://127.0.0.1:8000 (n8n started with `npx n8n`)."""
 import json
 import uuid
 from pathlib import Path
 
-API = "http://localhost:8000"
-N8N = "http://localhost:5678"
+API = "http://127.0.0.1:8000"
+N8N = "http://127.0.0.1:5678"
 OUT = Path(__file__).parent
 
 
@@ -87,13 +87,14 @@ save("WF2_scan.json", "WF2 ERP Sync (scan)", [
     switch_status("Route by status", STATUSES, [980, 180]),
     noop("Needs approval (dashboard)", [1240, 0]),
     noop("Waiting (WF5 re-checks)", [1240, 140]),
-    noop("Escalated: notify buyer (add Gmail later)", [1240, 280]),
+    http("Escalated: record for buyer", f"{API}/admin/audit", [1240, 280],
+         body="={{ JSON.stringify({ type: 'escalation', case_id: $json.id, key: 'esc:' + $json.id, detail: { reasons: $json.reasons } }) }}"),
     noop("Closed", [1240, 420]),
 ], link(("Run manually", "Scan ERP / files"), ("Every 5 minutes", "Scan ERP / files"),
         ("Scan webhook", "Scan ERP / files"), ("Scan ERP / files", "One item per new case"),
         ("One item per new case", "Investigate case"), ("Investigate case", "Route by status"),
         ("Route by status", "Needs approval (dashboard)", 0), ("Route by status", "Waiting (WF5 re-checks)", 1),
-        ("Route by status", "Escalated: notify buyer (add Gmail later)", 2), ("Route by status", "Closed", 3)),
+        ("Route by status", "Escalated: record for buyer", 2), ("Route by status", "Closed", 3)),
     "If 'One item per new case' gets an empty list, cases already exist: click Reset demo in the dashboard.")
 
 # ---------------- WF1 email intake: webhook (or Gmail, disabled) -> API links + LLM-extracts -> investigate
@@ -129,21 +130,40 @@ save("WF1_email_intake.json", "WF1 Email Intake", [
     "Duplicate message_id returns {duplicate:true} and stops at 'Not linked'. To use Gmail: enable the Gmail "
     "Trigger, add your Gmail credential, and disable the webhook.")
 
-# ---------------- WF4 send: dashboard 'Approve & send' -> Gmail -> start WF5
+# ---------------- WF4 send: idempotent outbox -> (simulated | Gmail) send -> start WF5
+# Replay / retry safety: the outbox POST returns duplicate=true for the same case+text, and WF4 stops there.
+AUDIT = f"{API}/admin/audit"
 save("WF4_send.json", "WF4 Send approved email", [
     webhook("Approved (from dashboard)", "send-supplier-email", [0, 0]),
     if_node("Supplier-facing?", cond("={{ $json.body.send }}", "true", single=True, typ="boolean"), [240, 0]),
-    node("Gmail: send to supplier", "gmail", {"sendTo": "={{ $json.body.to }}", "subject": "={{ $json.body.subject }}",
-                                              "emailType": "text", "message": "={{ $json.body.body }}",
-                                              "options": {"appendAttribution": False}}, [480, -100], 2.1),
-    http("Start wait-verify (WF5)", f"{N8N}/webhook/verify-case", [720, -100],
+    node("Send mode (simulate | gmail)", "set", {"assignments": {"assignments": [
+        {"id": str(uuid.uuid4()), "name": "mode", "value": "simulate", "type": "string"}]},
+        "includeOtherFields": True, "options": {}}, [480, -100], 3.4),
+    http("Outbox: record once (idempotent)", AUDIT, [720, -100],
+         body="={{ JSON.stringify({ type: 'supplier_email', case_id: $('Approved (from dashboard)').item.json.body.case_id, "
+              "detail: { to: $('Approved (from dashboard)').item.json.body.to, subject: $('Approved (from dashboard)').item.json.body.subject, "
+              "body: $('Approved (from dashboard)').item.json.body.body, mode: $('Send mode (simulate | gmail)').item.json.mode } }) }}"),
+    if_node("Already sent?", cond("={{ $json.duplicate }}", "true", single=True, typ="boolean"), [960, -100]),
+    noop("Duplicate blocked: nothing sent (see /admin/audit)", [1200, -240]),
+    if_node("Mode is gmail?", cond("={{ $('Send mode (simulate | gmail)').item.json.mode }}", "equals", "gmail"), [1200, 0]),
+    node("Gmail: send to supplier", "gmail", {"sendTo": "={{ $('Approved (from dashboard)').item.json.body.to }}",
+                                              "subject": "={{ $('Approved (from dashboard)').item.json.body.subject }}",
+                                              "emailType": "text", "message": "={{ $('Approved (from dashboard)').item.json.body.body }}",
+                                              "options": {"appendAttribution": False}}, [1440, -100], 2.1, disabled=True),
+    noop("Simulated send (recorded in outbox)", [1440, 100]),
+    http("Start wait-verify (WF5)", f"{N8N}/webhook/verify-case", [1680, 0],
          body="={{ JSON.stringify({ case_id: $('Approved (from dashboard)').item.json.body.case_id }) }}"),
-    noop("Internal action only", [480, 120]),
-], link(("Approved (from dashboard)", "Supplier-facing?"), ("Supplier-facing?", "Gmail: send to supplier", 0),
-        ("Supplier-facing?", "Internal action only", 1), ("Gmail: send to supplier", "Start wait-verify (WF5)")),
-    "Add your Gmail credential to the Gmail node. Activate this workflow so the production URL works.")
+    noop("Internal action only", [480, 140]),
+], link(("Approved (from dashboard)", "Supplier-facing?"), ("Supplier-facing?", "Send mode (simulate | gmail)", 0),
+        ("Supplier-facing?", "Internal action only", 1), ("Send mode (simulate | gmail)", "Outbox: record once (idempotent)"),
+        ("Outbox: record once (idempotent)", "Already sent?"), ("Already sent?", "Duplicate blocked: nothing sent (see /admin/audit)", 0),
+        ("Already sent?", "Mode is gmail?", 1), ("Mode is gmail?", "Gmail: send to supplier", 0),
+        ("Mode is gmail?", "Simulated send (recorded in outbox)", 1),
+        ("Gmail: send to supplier", "Start wait-verify (WF5)"), ("Simulated send (recorded in outbox)", "Start wait-verify (WF5)")),
+    "Default mode is 'simulate': the email is recorded in the outbox (GET /admin/audit) but not mailed. For real mail: "
+    "add a Gmail credential, enable the Gmail node, and set mode to 'gmail'. The outbox key makes replays/retries no-ops.")
 
-# ---------------- WF5 wait & verify: wait -> verify -> loop while WAITING (API escalates after 3)
+# ---------------- WF5 wait & verify: wait -> verify -> loop while WAITING (API escalates after 3) -> audit outcome
 save("WF5_wait_verify.json", "WF5 Wait and Verify", [
     webhook("Verify case (webhook)", "verify-case", [0, 0]),
     node("Wait (demo: 1 min)", "wait", {"resume": "timeInterval", "amount": 1, "unit": "minutes"}, [240, 0], 1.1,
@@ -151,25 +171,35 @@ save("WF5_wait_verify.json", "WF5 Wait and Verify", [
     http("Re-read system and verify", f"={API}/cases/{{{{ $('Verify case (webhook)').item.json.body.case_id }}}}/verify",
          [480, 0]),
     switch_status("Route by status", ["CLOSED", "WAITING", "ESCALATED"], [720, 0]),
-    noop("Closed: verified fixed", [980, -140]),
-    noop("Escalated: notify manager (add Gmail later)", [980, 140]),
+    http("Audit: closed after verification", AUDIT, [980, -140],
+         body="={{ JSON.stringify({ type: 'case_closed_verified', case_id: $('Verify case (webhook)').item.json.body.case_id, "
+              "key: 'closed:' + $('Verify case (webhook)').item.json.body.case_id, detail: { why: $json.why } }) }}"),
+    http("Audit: escalated to manager", AUDIT, [980, 140],
+         body="={{ JSON.stringify({ type: 'escalation', case_id: $('Verify case (webhook)').item.json.body.case_id, "
+              "key: 'esc:' + $('Verify case (webhook)').item.json.body.case_id, detail: { why: $json.why } }) }}"),
 ], link(("Verify case (webhook)", "Wait (demo: 1 min)"), ("Wait (demo: 1 min)", "Re-read system and verify"),
-        ("Re-read system and verify", "Route by status"), ("Route by status", "Closed: verified fixed", 0),
-        ("Route by status", "Wait (demo: 1 min)", 1), ("Route by status", "Escalated: notify manager (add Gmail later)", 2)),
-    "WAITING loops back to Wait. The API escalates after 3 attempts, so the loop is bounded.")
+        ("Re-read system and verify", "Route by status"), ("Route by status", "Audit: closed after verification", 0),
+        ("Route by status", "Wait (demo: 1 min)", 1), ("Route by status", "Audit: escalated to manager", 2)),
+    "WAITING loops back to Wait. The API escalates after 3 attempts, so the loop is bounded. Outcomes are written to /admin/audit.")
 
-# ---------------- WF6 error handler
+# ---------------- WF6 error handler: record every workflow failure (visible at /admin/audit), optional Gmail
 save("WF6_error.json", "WF6 Error Handler", [
     node("On any workflow error", "errorTrigger", {}, [0, 0], 1),
-    node("Gmail: alert owner", "gmail", {
+    http("Record error (audit log)", AUDIT, [260, 0],
+         body="={{ JSON.stringify({ type: 'workflow_error', detail: { workflow: $json.workflow.name, "
+              "node: $json.execution.lastNodeExecuted, error: $json.execution.error.message, "
+              "execution_url: $json.execution.url, execution_id: $json.execution.id } }) }}"),
+    node("Gmail: alert owner (enable after credential)", "gmail", {
         "sendTo": "your-email@gmail.com",
-        "subject": "=ResolveIQ: {{ $json.workflow.name }} failed",
+        "subject": "=ResolveIQ: {{ $('On any workflow error').item.json.workflow.name }} failed",
         "emailType": "text",
-        "message": "=Workflow: {{ $json.workflow.name }}\nNode: {{ $json.execution.lastNodeExecuted }}\n"
-                   "Error: {{ $json.execution.error.message }}\nExecution: {{ $json.execution.url }}",
-        "options": {"appendAttribution": False}}, [260, 0], 2.1),
-], link(("On any workflow error", "Gmail: alert owner")),
-    "Set this as the Error Workflow in the settings of WF1, WF2, WF4 and WF5. Put your email in the Gmail node.")
+        "message": "=Workflow: {{ $('On any workflow error').item.json.workflow.name }}\n"
+                   "Node: {{ $('On any workflow error').item.json.execution.lastNodeExecuted }}\n"
+                   "Error: {{ $('On any workflow error').item.json.execution.error.message }}",
+        "options": {"appendAttribution": False}}, [520, 0], 2.1, disabled=True),
+], link(("On any workflow error", "Record error (audit log)"), ("Record error (audit log)", "Gmail: alert owner (enable after credential)")),
+    "Set this as the Error Workflow (Workflow settings) of WF0, WF1, WF2, WF4, WF5. Every failure is recorded at "
+    "GET http://127.0.0.1:8000/admin/audit?type=workflow_error. Gmail is optional.")
 
 # ---------------- WF0 capability router monitor: watch the router's path log, alert on NATIVE -> FALLBACK switches
 save("WF0_capability_router.json", "WF0 Capability Router (monitor)", [

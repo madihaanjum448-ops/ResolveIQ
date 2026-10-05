@@ -3,7 +3,7 @@
   "nodes": [
     {
       "parameters": {},
-      "id": "02c732a5-c97e-4c77-a2dd-ac40f6ac883d",
+      "id": "900a624e-e5aa-4bd0-a1df-96afa91c325d",
       "name": "Run manually",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
@@ -17,51 +17,49 @@
         "rule": {
           "interval": [
             {
-              "field": "minutes",
-              "minutesInterval": 5
+              "field": "minutes"
             }
           ]
         }
       },
-      "id": "4901d33d-6510-455e-8ad2-925c15fbce3f",
+      "id": "35dc81c2-021b-4a16-b484-c64c87f8f5f5",
       "name": "Every 5 minutes",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
       "position": [
         0,
-        180
+        192
       ]
     },
     {
       "parameters": {
         "httpMethod": "POST",
         "path": "scan",
-        "responseMode": "onReceived",
         "options": {}
       },
-      "id": "00632723-b448-43ed-bc8d-2b87ade70f22",
+      "id": "811290b3-2e24-4c57-a70b-ee123604652f",
       "name": "Scan webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
         0,
-        360
+        368
       ],
-      "webhookId": "56bafafa-da22-4c03-a3cd-67088fb201d2"
+      "webhookId": "7e3b5e7e-b5c6-4cc4-973f-e4c01ff945dc"
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "=http://localhost:8000/scan/{{ $json.body?.customer || 'X' }}",
+        "url": "=http://127.0.0.1:8000/scan/{{ $json.body?.customer || 'X' }}",
         "options": {}
       },
-      "id": "2fed689e-805f-484a-85e6-e3986d5f3f22",
+      "id": "40242e40-56bf-4e1c-b941-6e83485d30c1",
       "name": "Scan ERP / files",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        260,
-        180
+        272,
+        192
       ]
     },
     {
@@ -69,28 +67,35 @@
         "fieldToSplitOut": "opened",
         "options": {}
       },
-      "id": "e57410c7-7864-493e-9ec3-b79644d196df",
+      "id": "ebb7b9a6-1c70-4bac-9612-f53cc5257996",
       "name": "One item per new case",
       "type": "n8n-nodes-base.splitOut",
       "typeVersion": 1,
       "position": [
-        500,
-        180
+        512,
+        192
       ]
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "=http://localhost:8000/cases/{{ $json.opened }}/investigate",
-        "options": {}
+        "url": "=http://127.0.0.1:8000/cases/{{ $json.opened }}/investigate",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 500
+            }
+          }
+        }
       },
-      "id": "ecbd95ce-dc88-47d3-bde6-5763bbfa7188",
+      "id": "0b8de411-8eb5-480d-9ac9-6fdf176faa94",
       "name": "Investigate case",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        740,
-        180
+        752,
+        192
       ]
     },
     {
@@ -107,7 +112,7 @@
                 },
                 "conditions": [
                   {
-                    "id": "d97a3dc2-8d61-4732-b383-150b9d689bc8",
+                    "id": "bd42bf5e-c8c8-4c33-915e-b312f825a476",
                     "leftValue": "={{ $json.status }}",
                     "rightValue": "AWAITING_APPROVAL",
                     "operator": {
@@ -131,7 +136,7 @@
                 },
                 "conditions": [
                   {
-                    "id": "c3b4a172-2073-40e7-8c3b-f5ca43571921",
+                    "id": "9877b977-6295-440c-a223-092945f6af1d",
                     "leftValue": "={{ $json.status }}",
                     "rightValue": "WAITING",
                     "operator": {
@@ -155,7 +160,7 @@
                 },
                 "conditions": [
                   {
-                    "id": "5ba25a27-6e75-4ad9-9e4b-e5bbf9243682",
+                    "id": "25272a3f-83b1-472f-b904-815243a76281",
                     "leftValue": "={{ $json.status }}",
                     "rightValue": "ESCALATED",
                     "operator": {
@@ -179,7 +184,7 @@
                 },
                 "conditions": [
                   {
-                    "id": "3ecb6479-25ac-4968-82b4-44d6842637ae",
+                    "id": "590530f4-9c06-4423-b230-61d97330bff5",
                     "leftValue": "={{ $json.status }}",
                     "rightValue": "CLOSED",
                     "operator": {
@@ -197,60 +202,68 @@
         },
         "options": {}
       },
-      "id": "a3afb2f3-957e-4b59-adff-bf33e9f52a37",
+      "id": "c93e0e5d-7d29-44e8-88c5-136078aa9667",
       "name": "Route by status",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.2,
       "position": [
-        980,
-        180
+        992,
+        192
       ]
     },
     {
       "parameters": {},
-      "id": "0d5d166e-ef4d-4fd1-a6e3-eea5ed070f66",
+      "id": "d5e07da2-dbcc-4d19-a80a-9c1bd244105d",
       "name": "Needs approval (dashboard)",
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
       "position": [
-        1240,
+        1248,
         0
       ]
     },
     {
       "parameters": {},
-      "id": "007f55b8-e8c2-4f2c-907b-40d03e81bcaf",
+      "id": "fb49cd20-eeea-4c61-aed4-0a6028b543b0",
       "name": "Waiting (WF5 re-checks)",
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
       "position": [
-        1240,
-        140
+        1248,
+        144
       ]
     },
     {
-      "parameters": {},
-      "id": "969ee42f-1688-4d3e-917e-a1b96767a429",
-      "name": "Escalated: notify buyer (add Gmail later)",
-      "type": "n8n-nodes-base.noOp",
-      "typeVersion": 1,
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:8000/admin/audit",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ type: 'escalation', case_id: $json.id, key: 'esc:' + $json.id, detail: { reasons: $json.reasons } }) }}",
+        "options": {}
+      },
+      "id": "82084d3c-0b23-48dd-a62e-2c98eefa8dcf",
+      "name": "Escalated: record for buyer",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [
-        1240,
-        280
+        1248,
+        288
       ]
     },
     {
       "parameters": {},
-      "id": "9456e0dc-50c6-4be1-ae7a-4b37c975b390",
+      "id": "e1e58f51-5dc0-4afe-ab09-88913636d302",
       "name": "Closed",
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
       "position": [
-        1240,
-        420
+        1248,
+        432
       ]
     }
   ],
+  "pinData": {},
   "connections": {
     "Run manually": {
       "main": [
@@ -336,7 +349,7 @@
         ],
         [
           {
-            "node": "Escalated: notify buyer (add Gmail later)",
+            "node": "Escalated: record for buyer",
             "type": "main",
             "index": 0
           }
@@ -351,12 +364,20 @@
       ]
     }
   },
-  "active": false,
+  "active": true,
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "85N74VHnjGQzU5iX",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
   },
-  "pinData": {},
+  "versionId": "19b1e786-0801-4828-8f05-81ee5025f3a2",
   "meta": {
-    "note": "If 'One item per new case' gets an empty list, cases already exist: click Reset demo in the dashboard."
-  }
+    "instanceId": "82f7302851375ed3c7da794c410f91b22ebdc1f80d6bcdec5034c0c9e9079225"
+  },
+  "nodeGroups": [],
+  "id": "vMDFg5oTdxioV8LS",
+  "tags": []
 }

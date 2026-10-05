@@ -5,48 +5,46 @@
       "parameters": {
         "httpMethod": "POST",
         "path": "verify-case",
-        "responseMode": "onReceived",
         "options": {}
       },
-      "id": "6f19e263-988e-4d4f-a438-70065d9cc400",
+      "id": "1aeca00f-cbb8-451e-8ea8-97603d446403",
       "name": "Verify case (webhook)",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        0,
-        0
+        -976,
+        144
       ],
-      "webhookId": "4c121ee9-15f4-48ce-a7b5-94b47f48bbb0"
+      "webhookId": "6da6ab68-f66d-4b16-b714-d15d5df6735d"
     },
     {
       "parameters": {
-        "resume": "timeInterval",
         "amount": 1,
         "unit": "minutes"
       },
-      "id": "3bd7e85f-808a-46d8-8795-f83eec3d0c2f",
+      "id": "46665e37-e3a2-42f7-8fa6-56393369775a",
       "name": "Wait (demo: 1 min)",
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
       "position": [
-        240,
-        0
+        -736,
+        144
       ],
-      "webhookId": "5d319c50-cd17-4427-b6aa-ca3f8ebe8790"
+      "webhookId": "9ff4cad9-b8e5-4174-9642-5e6d5df3e3dc"
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "=http://localhost:8000/cases/{{ $('Verify case (webhook)').item.json.body.case_id }}/verify",
+        "url": "=http://127.0.0.1:8000/cases/{{ $('Verify case (webhook)').item.json.body.case_id }}/verify",
         "options": {}
       },
-      "id": "83fc549b-9bdf-430a-97d1-9be30e54a350",
+      "id": "86153dad-870d-4ff1-8eb1-e58e0ed520b3",
       "name": "Re-read system and verify",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        480,
-        0
+        -496,
+        144
       ]
     },
     {
@@ -63,7 +61,7 @@
                 },
                 "conditions": [
                   {
-                    "id": "a5d92cde-086c-4b89-922d-7d57ae6b45cf",
+                    "id": "1395b21c-dec8-4702-bbfa-f914b1e46fe3",
                     "leftValue": "={{ $json.status }}",
                     "rightValue": "CLOSED",
                     "operator": {
@@ -87,7 +85,7 @@
                 },
                 "conditions": [
                   {
-                    "id": "0d54666a-1178-42cd-86fd-47dd06e9d509",
+                    "id": "8b2d184a-2934-45ed-9d2e-6bab9d4984b3",
                     "leftValue": "={{ $json.status }}",
                     "rightValue": "WAITING",
                     "operator": {
@@ -111,7 +109,7 @@
                 },
                 "conditions": [
                   {
-                    "id": "a09885aa-639f-481e-97e1-ac79327f45a5",
+                    "id": "531eb77f-a826-46b5-96eb-b5b2c6b74649",
                     "leftValue": "={{ $json.status }}",
                     "rightValue": "ESCALATED",
                     "operator": {
@@ -129,38 +127,53 @@
         },
         "options": {}
       },
-      "id": "1908ecc1-cdfb-48ef-b7ee-84cb255beb15",
+      "id": "e9f8b73e-8764-419f-8f68-42523799fc1c",
       "name": "Route by status",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.2,
       "position": [
-        720,
+        -256,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:8000/admin/audit",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ type: 'case_closed_verified', case_id: $('Verify case (webhook)').item.json.body.case_id, key: 'closed:' + $('Verify case (webhook)').item.json.body.case_id, detail: { why: $json.why } }) }}",
+        "options": {}
+      },
+      "id": "771f91ab-9fa8-4df7-a733-9d8cb55ec655",
+      "name": "Audit: closed after verification",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        0,
         0
       ]
     },
     {
-      "parameters": {},
-      "id": "8877da9d-1bdc-4d6e-8500-5aeb3b369d81",
-      "name": "Closed: verified fixed",
-      "type": "n8n-nodes-base.noOp",
-      "typeVersion": 1,
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:8000/admin/audit",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ type: 'escalation', case_id: $('Verify case (webhook)').item.json.body.case_id, key: 'esc:' + $('Verify case (webhook)').item.json.body.case_id, detail: { why: $json.why } }) }}",
+        "options": {}
+      },
+      "id": "9d329dc6-ed3d-4ee6-886a-a5ccc660adc1",
+      "name": "Audit: escalated to manager",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [
-        980,
-        -140
-      ]
-    },
-    {
-      "parameters": {},
-      "id": "b6ae3d48-8912-4493-9757-db9b4eb3642d",
-      "name": "Escalated: notify manager (add Gmail later)",
-      "type": "n8n-nodes-base.noOp",
-      "typeVersion": 1,
-      "position": [
-        980,
-        140
+        0,
+        288
       ]
     }
   ],
+  "pinData": {},
   "connections": {
     "Verify case (webhook)": {
       "main": [
@@ -199,7 +212,7 @@
       "main": [
         [
           {
-            "node": "Closed: verified fixed",
+            "node": "Audit: closed after verification",
             "type": "main",
             "index": 0
           }
@@ -213,7 +226,7 @@
         ],
         [
           {
-            "node": "Escalated: notify manager (add Gmail later)",
+            "node": "Audit: escalated to manager",
             "type": "main",
             "index": 0
           }
@@ -221,12 +234,16 @@
       ]
     }
   },
-  "active": false,
+  "active": true,
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "binaryMode": "separate"
   },
-  "pinData": {},
+  "versionId": "4f18925d-d744-4dde-8016-3bb2da778577",
   "meta": {
-    "note": "WAITING loops back to Wait. The API escalates after 3 attempts, so the loop is bounded."
-  }
+    "instanceId": "82f7302851375ed3c7da794c410f91b22ebdc1f80d6bcdec5034c0c9e9079225"
+  },
+  "nodeGroups": [],
+  "id": "EHp3xXjrcMuMdldY",
+  "tags": []
 }

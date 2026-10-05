@@ -338,3 +338,8 @@ def reset():
 @app.get("/admin/paths")
 def paths():
     return s.path_log()
+
+
+# P0 (Person 2): audit log + idempotent outbox used by n8n WF4/WF5/WF6 (see api/audit.py)
+from api.audit import router as audit_router  # noqa: E402
+app.include_router(audit_router)
