@@ -82,7 +82,14 @@
       "parameters": {
         "method": "POST",
         "url": "=http://localhost:8000/cases/{{ $json.opened }}/investigate",
-        "options": {}
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 500
+            }
+          }
+        }
       },
       "id": "65ddb026-1a70-4695-bc22-702b7963cf1a",
       "name": "Investigate case",

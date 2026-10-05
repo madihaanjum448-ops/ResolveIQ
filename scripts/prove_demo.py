@@ -82,15 +82,26 @@ def main():
     st, _ = call("POST", f"{N8N}/webhook/email-in", {"message_id": f"proof-{int(time.time())}", "subject": "Re: PO-1001",
                                                      "body": "baaki 10 transport se bhej diya, LR 4455, Tuesday tak pahunch jayega"})
     check("WF1 webhook accepted", st == 200, f"HTTP {st} (is WF1 published?)")
-    linked = wait_for(lambda: any(e["type"] == "email_linked" for e in call("GET", f"{API}/cases/{cid}")[1].get("timeline", [])), 40)
+    def timeline():
+        return call("GET", f"{API}/cases/{cid}")[1].get("timeline", [])
+
+    linked = wait_for(lambda: any(e["type"] == "email_linked" for e in timeline()), 40)
     check("email linked to the case", linked)
+
+    def investigated_after_link():
+        t = timeline()
+        link_ids = [e["id"] for e in t if e["type"] == "email_linked"]
+        return link_ids and any(e["type"] == "investigated" and e["id"] > max(link_ids) for e in t)
+    wait_for(investigated_after_link, 90, 3)
     c = call("GET", f"{API}/cases/{cid}")[1]
     check("LLM read the Hinglish email -> PARTIAL_WAIT (no premature dispute)", c["case_class"] == "PARTIAL_WAIT",
           f"got {c['case_class']}; UNKNOWN means the LLM key/model is not working")
 
     print("\n== 2. ETA passes -> follow-up needs approval")
     call("POST", f"{API}/admin/clock?today=2026-10-08&today_val=2026-10-08")
-    c = call("POST", f"{API}/cases/{cid}/investigate")[1]
+    ai = call("POST", f"{API}/cases/{cid}/investigate")[1]
+    print(f"  info: with no pinned action the AI proposed {ai.get('action')} -> {ai.get('status')}")
+    c = call("POST", f"{API}/cases/{cid}/investigate?proposed_action=SEND_REMINDER")[1]
     check("class becomes PARTIAL_OVERDUE", c.get("case_class") == "PARTIAL_OVERDUE", c.get("case_class"))
     check("supplier email waits for a human (AWAITING_APPROVAL)", c.get("status") == "AWAITING_APPROVAL", c.get("status"))
     check("draft has no banned words", c.get("draft") and "fraud" not in c["draft"].lower())
@@ -143,7 +154,7 @@ def main():
         check("injection email linked to PO-1005 case", False, str(r))
 
     print("\n== 7. WF6 error handler (deliberate failure)")
-    call("POST", f"{N8N}/webhook/scan", {"customer": "NOPE"})        # unknown customer -> API 500 -> WF2 fails
+    call("POST", f"{N8N}/webhook/scan", {"customer": "NOPE/x"})        # unknown customer -> API 500 -> WF2 fails
     err = wait_for(lambda: audit("workflow_error"), 25)
     check("WF6 recorded the failure (workflow, node, error)", err,
           (err[0]["detail"].get("workflow", "") + " / " + str(err[0]["detail"].get("node"))) if err
