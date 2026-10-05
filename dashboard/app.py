@@ -32,7 +32,7 @@ with st.sidebar:
         st.success(call("POST", f"/scan/{cust}"))
     d = st.date_input("Simulated today")
     if st.button("Set clock"):
-        call("POST", "/admin/clock", params={"today": str(d)})
+        call("POST", "/admin/clock", params={"today_val": str(d)})
     st.divider()
     po = st.text_input("PO for GRN update", "PO-1001")
     q = st.number_input("Qty received", 1, 1000, 10)
