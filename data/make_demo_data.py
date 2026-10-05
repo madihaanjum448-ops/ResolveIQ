@@ -26,16 +26,63 @@ INVS = [  # number, po, qty, price
 
 
 def _pdf(path, number, po, qty, price):
-    from reportlab.lib.pagesizes import A4
-    from reportlab.pdfgen import canvas
-    c = canvas.Canvas(str(path), pagesize=A4)
-    y = 800
-    for line in [f"{SUP['name']} - TAX INVOICE", "GSTIN: 29ABCDE1234F1Z5", f"Invoice No: {number}",
-                 f"PO No: {po}", "Item: as per PO", f"Qty: {qty}", f"Rate: Rs. {price:.2f}",
-                 f"Total: Rs. {qty * price:.2f}", "Thank you for your business"]:
-        c.drawString(60, y, line)
-        y -= 22
-    c.save()
+    lines = [f"{SUP['name']} - TAX INVOICE", "GSTIN: 29ABCDE1234F1Z5", f"Invoice No: {number}",
+             f"PO No: {po}", "Item: as per PO", f"Qty: {qty}", f"Rate: Rs. {price:.2f}",
+             f"Total: Rs. {qty * price:.2f}", "Thank you for your business"]
+    try:
+        from reportlab.lib.pagesizes import A4
+        from reportlab.pdfgen import canvas
+        c = canvas.Canvas(str(path), pagesize=A4)
+        y = 800
+        for line in lines:
+            c.drawString(60, y, line)
+            y -= 22
+        c.save()
+    except (ImportError, Exception):
+        # Pure-Python fallback minimal PDF writer
+        content = "BT\n/F1 12 Tf\n"
+        y = 800
+        for l in lines:
+            escaped = l.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
+            content += f"1 0 0 1 60 {y} Tm\n({escaped}) Tj\n"
+            y -= 22
+        content += "ET\n"
+        stream_bytes = content.encode("latin-1")
+        stream_len = len(stream_bytes)
+        
+        pdf_text = f"""%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>
+endobj
+4 0 obj
+<< /Length {stream_len} >>
+stream
+{content}endstream
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000244 00000 n 
+0000000340 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+420
+%%EOF"""
+        with open(path, "wb") as f:
+            f.write(pdf_text.encode("latin-1"))
 
 
 def build():

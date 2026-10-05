@@ -5,16 +5,15 @@
       "parameters": {
         "httpMethod": "POST",
         "path": "email-in",
-        "responseMode": "onReceived",
         "options": {}
       },
-      "id": "120c6933-d2f7-4db0-8100-c4f586527bf5",
+      "id": "cfddc07f-e652-4b24-85ad-b049839d716e",
       "name": "Email in (webhook)",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        0,
-        0
+        -1456,
+        272
       ],
       "webhookId": "758b61a0-58bb-4bc7-b3b7-a7a19f489f6e"
     },
@@ -31,13 +30,13 @@
         "filters": {},
         "options": {}
       },
-      "id": "f75c50b5-acbd-4df0-b8b9-34d781904142",
+      "id": "4ce0a693-a827-434a-a719-477b35e8cf0f",
       "name": "Gmail Trigger (enable later)",
       "type": "n8n-nodes-base.gmailTrigger",
       "typeVersion": 1.2,
       "position": [
-        0,
-        220
+        -1456,
+        480
       ],
       "disabled": true
     },
@@ -67,31 +66,31 @@
         },
         "options": {}
       },
-      "id": "948ea8e8-b589-453b-9e68-fee4ff8e300a",
+      "id": "f8335f2f-3b19-4f43-83ba-09a429006b6b",
       "name": "Map Gmail to email shape",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        240,
-        220
+        -1216,
+        480
       ]
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "http://localhost:8000/emails",
-        "options": {},
+        "url": "http://127.0.0.1:8000/emails",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ message_id: $json.body.message_id || ('wh-' + $execution.id), subject: $json.body.subject || '', body: $json.body.body || '', extraction: null }) }}"
+        "jsonBody": "={{ JSON.stringify({ message_id: $json.body.message_id || ('wh-' + $execution.id), subject: $json.body.subject || '', body: $json.body.body || '', extraction: null }) }}",
+        "options": {}
       },
-      "id": "234198c4-7b55-428a-9b67-a1cb707e9fad",
+      "id": "66909bea-4a40-48ee-802c-c64cb2303f4d",
       "name": "Store email (API links + Claude extracts)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        480,
-        0
+        -976,
+        272
       ]
     },
     {
@@ -120,39 +119,39 @@
         "looseTypeValidation": true,
         "options": {}
       },
-      "id": "1084a97d-00a8-40b7-b1bc-58b7bf9cb533",
+      "id": "f6c171d7-741e-4c1e-bd9a-a7f55f413928",
       "name": "Linked to a case?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        720,
-        0
+        -736,
+        272
       ]
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "=http://localhost:8000/cases/{{ $json.case_id }}/investigate",
+        "url": "=http://127.0.0.1:8000/cases/{{ $json.case_id }}/investigate",
         "options": {}
       },
-      "id": "da16aca3-56ce-42f8-bc37-6bbe2856fa91",
+      "id": "adb7ad55-c09d-46a3-b817-565869ffcc2a",
       "name": "Investigate case",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        960,
-        -100
+        -496,
+        160
       ]
     },
     {
       "parameters": {},
-      "id": "480c6535-2fc4-480f-b6a1-ad98d926a4f5",
+      "id": "7ab3c130-528c-43f9-9926-b6f4831799a2",
       "name": "Not linked: triage queue (notify buyer later)",
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
       "position": [
-        960,
-        120
+        -496,
+        384
       ]
     },
     {
@@ -259,60 +258,61 @@
         },
         "options": {}
       },
-      "id": "48ba6975-c2ab-4a6e-ab52-774bb73c2311",
+      "id": "f2104c17-f808-4eaf-87f1-b9e46bf38ad4",
       "name": "Route by status",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.2,
       "position": [
-        1200,
-        -100
+        -256,
+        160
       ]
     },
     {
       "parameters": {},
-      "id": "09b8ad1d-22c6-4ed0-b83c-64a1dcf7c922",
+      "id": "61f8bb73-6148-4e60-af61-390da549a6bd",
       "name": "Needs approval (dashboard)",
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
       "position": [
-        1460,
-        -260
+        0,
+        0
       ]
     },
     {
       "parameters": {},
-      "id": "853d37d0-c8c0-4300-992c-4e248c715b57",
+      "id": "2a35d1be-2171-4a8c-92b9-32cb9e3b571d",
       "name": "Waiting (WF5 re-checks)",
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
       "position": [
-        1460,
-        -120
+        0,
+        144
       ]
     },
     {
       "parameters": {},
-      "id": "b861db4a-169c-48ad-a02c-ae583ec4710a",
+      "id": "d649d001-f2d4-436e-b753-bb7b6127856d",
       "name": "Escalated: notify buyer (add Gmail later)",
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
       "position": [
-        1460,
-        20
+        0,
+        288
       ]
     },
     {
       "parameters": {},
-      "id": "795c0ca6-a5c4-45d6-a348-efa368e92dda",
+      "id": "e265f108-ba64-495d-8f8d-2313dc7e48e8",
       "name": "Closed",
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
       "position": [
-        1460,
-        160
+        0,
+        432
       ]
     }
   ],
+  "pinData": {},
   "connections": {
     "Email in (webhook)": {
       "main": [
@@ -420,12 +420,16 @@
       ]
     }
   },
-  "active": false,
+  "active": true,
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "binaryMode": "separate"
   },
-  "pinData": {},
+  "versionId": "212846b6-eb2a-4d70-95e8-605fbf21ea9c",
   "meta": {
-    "note": "Duplicate message_id returns {duplicate:true} and stops at 'Not linked'. To use Gmail: enable the Gmail Trigger, add your Gmail credential, and disable the webhook."
-  }
+    "instanceId": "82f7302851375ed3c7da794c410f91b22ebdc1f80d6bcdec5034c0c9e9079225"
+  },
+  "nodeGroups": [],
+  "id": "zz5KcerWqtgVH9xS",
+  "tags": []
 }

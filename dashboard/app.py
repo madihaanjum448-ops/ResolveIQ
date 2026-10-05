@@ -1,6 +1,7 @@
 """Control room. Run: streamlit run dashboard/app.py"""
 import json
 import os
+import sys
 from pathlib import Path
 
 import requests
@@ -31,7 +32,7 @@ with st.sidebar:
         st.success(call("POST", f"/scan/{cust}"))
     d = st.date_input("Simulated today")
     if st.button("Set clock"):
-        call("POST", "/admin/clock", params={"today": str(d)})
+        call("POST", "/admin/clock", params={"today_val": str(d)})
     st.divider()
     po = st.text_input("PO for GRN update", "PO-1001")
     q = st.number_input("Qty received", 1, 1000, 10)
@@ -102,9 +103,35 @@ with tab_paths:
     st.dataframe(call("GET", "/admin/paths"), use_container_width=True)
 
 with tab_metrics:
-    p = Path(__file__).resolve().parent.parent / "eval" / "results.json"
-    if p.exists():
-        st.dataframe(json.loads(p.read_text()), use_container_width=True)
-        st.caption("Synthetic dataset. Not production performance. No rupee savings claimed.")
-    else:
-        st.info("Run: python -m eval.run_eval --arms R0,R1,S,L")
+    dashboard_dir = Path(__file__).resolve().parent
+    repo_root = dashboard_dir.parent
+
+    try:
+        sys.path.insert(0, str(dashboard_dir))
+        from eval_view import render as render_evaluation
+
+        render_evaluation(repo_root)
+
+    except Exception as e:
+        st.warning(
+            f"New evaluation view unavailable ({e}); "
+            "showing the previous evaluation view."
+        )
+
+        p = repo_root / "eval" / "results.json"
+
+        if p.exists():
+            st.dataframe(
+                json.loads(
+                    p.read_text(encoding="utf-8")
+                ),
+                use_container_width=True,
+            )
+            st.caption(
+                "Synthetic dataset. Not production performance. "
+                "No rupee savings claimed."
+            )
+        else:
+            st.info(
+                "Run: python -m eval.run_eval --arms R0,R1,S,L"
+            )

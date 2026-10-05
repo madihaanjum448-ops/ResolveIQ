@@ -41,7 +41,7 @@
     {
       "parameters": {
         "method": "GET",
-        "url": "http://localhost:8000/admin/paths",
+        "url": "http://127.0.0.1:8000/admin/paths",
         "options": {}
       },
       "id": "00f1c0d7-d3c9-4c56-938e-39d8c556f644",

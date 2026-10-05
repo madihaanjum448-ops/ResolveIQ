@@ -38,7 +38,7 @@ DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sun
 def _d(days, hinglish=False):
     """Messy, human ETA text (what suppliers really write). Ground truth kept separately."""
     d = TODAY + timedelta(days=days)
-    opts = [d.strftime("%-d %b"), DAYS[d.weekday()]] + (
+    opts = [f"{d.day} {d.strftime('%b')}", DAYS[d.weekday()]] + (
         [f"{days} din mein", "kal" if days == 1 else "parso" if days == 2 else DAYS[d.weekday()]] if hinglish and days > 0
         else [f"in {days} days" if days > 0 else d.strftime("%d/%m"), d.isoformat()])
     return random.choice(opts), d.isoformat()

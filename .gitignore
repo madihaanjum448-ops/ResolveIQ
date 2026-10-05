@@ -7,5 +7,9 @@ resolver.db
 data/demo/
 __pycache__/
 eval/dataset.json
+eval/.llm_cache.json
+eval/.llm_cache.tmp
 eval/golden_results.json
+eval/results.json
 eval/llm_cache.json
+audit.jsonl
