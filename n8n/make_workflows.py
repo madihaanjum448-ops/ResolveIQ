@@ -1,12 +1,12 @@
 """Generates importable n8n workflow JSON files (n8n 2.x node types).
    python n8n/make_workflows.py   -> writes n8n/WF*.json
-All HTTP calls go to the ResolveIQ API at http://localhost:8000 (n8n started with `npx n8n`)."""
+All HTTP calls go to the ResolveIQ API at http://127.0.0.1:8000 (n8n started with `npx n8n`)."""
 import json
 import uuid
 from pathlib import Path
 
-API = "http://localhost:8000"
-N8N = "http://localhost:5678"
+API = "http://127.0.0.1:8000"
+N8N = "http://127.0.0.1:5678"
 OUT = Path(__file__).parent
 
 
@@ -199,7 +199,7 @@ save("WF6_error.json", "WF6 Error Handler", [
         "options": {"appendAttribution": False}}, [520, 0], 2.1, disabled=True),
 ], link(("On any workflow error", "Record error (audit log)"), ("Record error (audit log)", "Gmail: alert owner (enable after credential)")),
     "Set this as the Error Workflow (Workflow settings) of WF0, WF1, WF2, WF4, WF5. Every failure is recorded at "
-    "GET http://localhost:8000/admin/audit?type=workflow_error. Gmail is optional.")
+    "GET http://127.0.0.1:8000/admin/audit?type=workflow_error. Gmail is optional.")
 
 # ---------------- WF0 capability router monitor: watch the router's path log, alert on NATIVE -> FALLBACK switches
 save("WF0_capability_router.json", "WF0 Capability Router (monitor)", [

@@ -131,7 +131,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "=http://localhost:8000/cases/{{ $json.case_id }}/investigate",
+        "url": "=http://127.0.0.1:8000/cases/{{ $json.case_id }}/investigate",
         "options": {}
       },
       "id": "adb7ad55-c09d-46a3-b817-565869ffcc2a",

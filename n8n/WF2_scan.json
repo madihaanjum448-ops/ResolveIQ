@@ -79,7 +79,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "=http://localhost:8000/cases/{{ $json.opened }}/investigate",
+        "url": "=http://127.0.0.1:8000/cases/{{ $json.opened }}/investigate",
         "options": {
           "batching": {
             "batch": {
@@ -236,7 +236,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "http://localhost:8000/admin/audit",
+        "url": "http://127.0.0.1:8000/admin/audit",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ type: 'escalation', case_id: $json.id, key: 'esc:' + $json.id, detail: { reasons: $json.reasons } }) }}",

@@ -15,7 +15,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "http://localhost:8000/admin/audit",
+        "url": "http://127.0.0.1:8000/admin/audit",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ type: 'workflow_error', detail: { workflow: $json.workflow.name, node: $json.execution.lastNodeExecuted, error: $json.execution.error.message, execution_url: $json.execution.url, execution_id: $json.execution.id } }) }}",
