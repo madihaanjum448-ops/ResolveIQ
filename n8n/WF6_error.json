@@ -3,7 +3,7 @@
   "nodes": [
     {
       "parameters": {},
-      "id": "3aa474f7-04ba-42ca-bc28-d91f213eb4aa",
+      "id": "ab8ca50f-5e46-45b5-8d16-54b174cc55f9",
       "name": "On any workflow error",
       "type": "n8n-nodes-base.errorTrigger",
       "typeVersion": 1,
@@ -14,22 +14,41 @@
     },
     {
       "parameters": {
-        "sendTo": "your-email@gmail.com",
-        "subject": "=ResolveIQ: {{ $json.workflow.name }} failed",
-        "emailType": "text",
-        "message": "=Workflow: {{ $json.workflow.name }}\nNode: {{ $json.execution.lastNodeExecuted }}\nError: {{ $json.execution.error.message }}\nExecution: {{ $json.execution.url }}",
-        "options": {
-          "appendAttribution": false
-        }
+        "method": "POST",
+        "url": "http://localhost:8000/admin/audit",
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ type: 'workflow_error', detail: { workflow: $json.workflow.name, node: $json.execution.lastNodeExecuted, error: $json.execution.error.message, execution_url: $json.execution.url, execution_id: $json.execution.id } }) }}"
       },
-      "id": "161d93e2-82a1-4fbb-bee8-1ae0b9a645bf",
-      "name": "Gmail: alert owner",
-      "type": "n8n-nodes-base.gmail",
-      "typeVersion": 2.1,
+      "id": "664808d2-61ec-4e1e-81a3-ee26bce45eed",
+      "name": "Record error (audit log)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [
         260,
         0
       ]
+    },
+    {
+      "parameters": {
+        "sendTo": "your-email@gmail.com",
+        "subject": "=ResolveIQ: {{ $('On any workflow error').item.json.workflow.name }} failed",
+        "emailType": "text",
+        "message": "=Workflow: {{ $('On any workflow error').item.json.workflow.name }}\nNode: {{ $('On any workflow error').item.json.execution.lastNodeExecuted }}\nError: {{ $('On any workflow error').item.json.execution.error.message }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "ff43cc13-e233-46ce-b178-af3413ef3260",
+      "name": "Gmail: alert owner (enable after credential)",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        520,
+        0
+      ],
+      "disabled": true
     }
   ],
   "connections": {
@@ -37,7 +56,18 @@
       "main": [
         [
           {
-            "node": "Gmail: alert owner",
+            "node": "Record error (audit log)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Record error (audit log)": {
+      "main": [
+        [
+          {
+            "node": "Gmail: alert owner (enable after credential)",
             "type": "main",
             "index": 0
           }
@@ -51,6 +81,6 @@
   },
   "pinData": {},
   "meta": {
-    "note": "Set this as the Error Workflow in the settings of WF1, WF2, WF4 and WF5. Put your email in the Gmail node."
+    "note": "Set this as the Error Workflow (Workflow settings) of WF0, WF1, WF2, WF4, WF5. Every failure is recorded at GET http://localhost:8000/admin/audit?type=workflow_error. Gmail is optional."
   }
 }

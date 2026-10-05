@@ -3,7 +3,7 @@
   "nodes": [
     {
       "parameters": {},
-      "id": "02c732a5-c97e-4c77-a2dd-ac40f6ac883d",
+      "id": "5a223815-6071-4e72-beed-5371ed065bfc",
       "name": "Run manually",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
@@ -23,7 +23,7 @@
           ]
         }
       },
-      "id": "4901d33d-6510-455e-8ad2-925c15fbce3f",
+      "id": "25b29831-b2e7-4abd-b7b1-7cd5b425d763",
       "name": "Every 5 minutes",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
@@ -39,7 +39,7 @@
         "responseMode": "onReceived",
         "options": {}
       },
-      "id": "00632723-b448-43ed-bc8d-2b87ade70f22",
+      "id": "70e714c6-b3de-4f35-83c7-b369b75e3048",
       "name": "Scan webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
@@ -47,7 +47,7 @@
         0,
         360
       ],
-      "webhookId": "56bafafa-da22-4c03-a3cd-67088fb201d2"
+      "webhookId": "7e3b5e7e-b5c6-4cc4-973f-e4c01ff945dc"
     },
     {
       "parameters": {
@@ -55,7 +55,7 @@
         "url": "=http://localhost:8000/scan/{{ $json.body?.customer || 'X' }}",
         "options": {}
       },
-      "id": "2fed689e-805f-484a-85e6-e3986d5f3f22",
+      "id": "8fac07a3-a66b-4221-a95d-db282451ea3a",
       "name": "Scan ERP / files",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -69,7 +69,7 @@
         "fieldToSplitOut": "opened",
         "options": {}
       },
-      "id": "e57410c7-7864-493e-9ec3-b79644d196df",
+      "id": "fa541b16-4852-4757-b1a2-3b08234195aa",
       "name": "One item per new case",
       "type": "n8n-nodes-base.splitOut",
       "typeVersion": 1,
@@ -84,7 +84,7 @@
         "url": "=http://localhost:8000/cases/{{ $json.opened }}/investigate",
         "options": {}
       },
-      "id": "ecbd95ce-dc88-47d3-bde6-5763bbfa7188",
+      "id": "65ddb026-1a70-4695-bc22-702b7963cf1a",
       "name": "Investigate case",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -107,7 +107,7 @@
                 },
                 "conditions": [
                   {
-                    "id": "d97a3dc2-8d61-4732-b383-150b9d689bc8",
+                    "id": "bd42bf5e-c8c8-4c33-915e-b312f825a476",
                     "leftValue": "={{ $json.status }}",
                     "rightValue": "AWAITING_APPROVAL",
                     "operator": {
@@ -131,7 +131,7 @@
                 },
                 "conditions": [
                   {
-                    "id": "c3b4a172-2073-40e7-8c3b-f5ca43571921",
+                    "id": "9877b977-6295-440c-a223-092945f6af1d",
                     "leftValue": "={{ $json.status }}",
                     "rightValue": "WAITING",
                     "operator": {
@@ -155,7 +155,7 @@
                 },
                 "conditions": [
                   {
-                    "id": "5ba25a27-6e75-4ad9-9e4b-e5bbf9243682",
+                    "id": "25272a3f-83b1-472f-b904-815243a76281",
                     "leftValue": "={{ $json.status }}",
                     "rightValue": "ESCALATED",
                     "operator": {
@@ -179,7 +179,7 @@
                 },
                 "conditions": [
                   {
-                    "id": "3ecb6479-25ac-4968-82b4-44d6842637ae",
+                    "id": "590530f4-9c06-4423-b230-61d97330bff5",
                     "leftValue": "={{ $json.status }}",
                     "rightValue": "CLOSED",
                     "operator": {
@@ -197,7 +197,7 @@
         },
         "options": {}
       },
-      "id": "a3afb2f3-957e-4b59-adff-bf33e9f52a37",
+      "id": "06bc6832-8a4f-45ee-a53b-6191d20e8b82",
       "name": "Route by status",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.2,
@@ -208,7 +208,7 @@
     },
     {
       "parameters": {},
-      "id": "0d5d166e-ef4d-4fd1-a6e3-eea5ed070f66",
+      "id": "984f9108-96d6-47f1-905f-bc7720fbbad0",
       "name": "Needs approval (dashboard)",
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
@@ -219,7 +219,7 @@
     },
     {
       "parameters": {},
-      "id": "007f55b8-e8c2-4f2c-907b-40d03e81bcaf",
+      "id": "08e3669f-6cc6-4f04-802d-1ea7e56c29b3",
       "name": "Waiting (WF5 re-checks)",
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
@@ -229,11 +229,18 @@
       ]
     },
     {
-      "parameters": {},
-      "id": "969ee42f-1688-4d3e-917e-a1b96767a429",
-      "name": "Escalated: notify buyer (add Gmail later)",
-      "type": "n8n-nodes-base.noOp",
-      "typeVersion": 1,
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:8000/admin/audit",
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ type: 'escalation', case_id: $json.id, key: 'esc:' + $json.id, detail: { reasons: $json.reasons } }) }}"
+      },
+      "id": "0bf2e33d-5795-4db4-8912-66fb2ff57ba0",
+      "name": "Escalated: record for buyer",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [
         1240,
         280
@@ -241,7 +248,7 @@
     },
     {
       "parameters": {},
-      "id": "9456e0dc-50c6-4be1-ae7a-4b37c975b390",
+      "id": "b391ccaa-56e6-4756-adf0-7ef0ff277bd3",
       "name": "Closed",
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
@@ -336,7 +343,7 @@
         ],
         [
           {
-            "node": "Escalated: notify buyer (add Gmail later)",
+            "node": "Escalated: record for buyer",
             "type": "main",
             "index": 0
           }

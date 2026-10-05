@@ -8,7 +8,7 @@
         "responseMode": "onReceived",
         "options": {}
       },
-      "id": "524bcf8e-502a-4a8b-8da6-a416e599169f",
+      "id": "4c04239b-c1a7-446e-a92a-134f3fc82195",
       "name": "Approved (from dashboard)",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
@@ -16,7 +16,7 @@
         0,
         0
       ],
-      "webhookId": "aeec6099-44b9-4dc5-98b5-1f2d5043eb34"
+      "webhookId": "67e4107a-dd9c-48df-bf5a-27f50a40be23"
     },
     {
       "parameters": {
@@ -29,7 +29,7 @@
           },
           "conditions": [
             {
-              "id": "1ed5ee2d-35e6-4570-94cd-b0bc61e732ff",
+              "id": "0137026e-347b-4099-8c11-b027e4203394",
               "leftValue": "={{ $json.body.send }}",
               "rightValue": "",
               "operator": {
@@ -44,7 +44,7 @@
         "looseTypeValidation": true,
         "options": {}
       },
-      "id": "f60aebc4-734e-4d94-9896-679e5f4eb904",
+      "id": "f50bac65-a8fb-4cc8-975e-9c8be31c4cf6",
       "name": "Supplier-facing?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
@@ -55,21 +55,155 @@
     },
     {
       "parameters": {
-        "sendTo": "={{ $json.body.to }}",
-        "subject": "={{ $json.body.subject }}",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "acbbe008-e4c0-4b81-b3cd-8498092f9709",
+              "name": "mode",
+              "value": "simulate",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "aa75535c-b857-4621-919c-6de10b1deab8",
+      "name": "Send mode (simulate | gmail)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        480,
+        -100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:8000/admin/audit",
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ type: 'supplier_email', case_id: $('Approved (from dashboard)').item.json.body.case_id, detail: { to: $('Approved (from dashboard)').item.json.body.to, subject: $('Approved (from dashboard)').item.json.body.subject, body: $('Approved (from dashboard)').item.json.body.body, mode: $('Send mode (simulate | gmail)').item.json.mode } }) }}"
+      },
+      "id": "162babd3-00e2-492f-945f-6bf0874cdb75",
+      "name": "Outbox: record once (idempotent)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        720,
+        -100
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "6a2257d5-bf79-489c-947a-6d8cb5e74491",
+              "leftValue": "={{ $json.duplicate }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "92ec3621-adb2-4014-8abb-3f5c5fc286ab",
+      "name": "Already sent?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        960,
+        -100
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "e2ca3276-fcf6-4938-9706-e7eacbf5b169",
+      "name": "Duplicate blocked: nothing sent (see /admin/audit)",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1200,
+        -240
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "366de12a-735b-4e65-80bc-0594ee4b5407",
+              "leftValue": "={{ $('Send mode (simulate | gmail)').item.json.mode }}",
+              "rightValue": "gmail",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "7090130c-b406-447d-9bd2-f61c11b0fe11",
+      "name": "Mode is gmail?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1200,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Approved (from dashboard)').item.json.body.to }}",
+        "subject": "={{ $('Approved (from dashboard)').item.json.body.subject }}",
         "emailType": "text",
-        "message": "={{ $json.body.body }}",
+        "message": "={{ $('Approved (from dashboard)').item.json.body.body }}",
         "options": {
           "appendAttribution": false
         }
       },
-      "id": "e7f0b684-7b71-4afa-964b-d568bfef7178",
+      "id": "fc7bf9ae-87e6-476f-ba11-7f8743a640fd",
       "name": "Gmail: send to supplier",
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.1,
       "position": [
-        480,
+        1440,
         -100
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {},
+      "id": "a2322d27-7961-4f41-8647-71f2b3c53fad",
+      "name": "Simulated send (recorded in outbox)",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1440,
+        100
       ]
     },
     {
@@ -81,24 +215,24 @@
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ case_id: $('Approved (from dashboard)').item.json.body.case_id }) }}"
       },
-      "id": "1b7afece-83d3-4e24-96a7-446a48beac78",
+      "id": "51ec3835-ac42-4aea-a6cb-0ed4ebe0ee72",
       "name": "Start wait-verify (WF5)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        720,
-        -100
+        1680,
+        0
       ]
     },
     {
       "parameters": {},
-      "id": "e1fe80be-3d59-4232-ac2a-19cb27b7e74b",
+      "id": "88f69119-8174-4486-917b-8dede2b3cbee",
       "name": "Internal action only",
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
       "position": [
         480,
-        120
+        140
       ]
     }
   ],
@@ -118,7 +252,7 @@
       "main": [
         [
           {
-            "node": "Gmail: send to supplier",
+            "node": "Send mode (simulate | gmail)",
             "type": "main",
             "index": 0
           }
@@ -132,7 +266,76 @@
         ]
       ]
     },
+    "Send mode (simulate | gmail)": {
+      "main": [
+        [
+          {
+            "node": "Outbox: record once (idempotent)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Outbox: record once (idempotent)": {
+      "main": [
+        [
+          {
+            "node": "Already sent?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Already sent?": {
+      "main": [
+        [
+          {
+            "node": "Duplicate blocked: nothing sent (see /admin/audit)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mode is gmail?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mode is gmail?": {
+      "main": [
+        [
+          {
+            "node": "Gmail: send to supplier",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Simulated send (recorded in outbox)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Gmail: send to supplier": {
+      "main": [
+        [
+          {
+            "node": "Start wait-verify (WF5)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simulated send (recorded in outbox)": {
       "main": [
         [
           {
@@ -150,6 +353,6 @@
   },
   "pinData": {},
   "meta": {
-    "note": "Add your Gmail credential to the Gmail node. Activate this workflow so the production URL works."
+    "note": "Default mode is 'simulate': the email is recorded in the outbox (GET /admin/audit) but not mailed. For real mail: add a Gmail credential, enable the Gmail node, and set mode to 'gmail'. The outbox key makes replays/retries no-ops."
   }
 }
